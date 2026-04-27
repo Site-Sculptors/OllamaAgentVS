@@ -1,0 +1,83 @@
+﻿<CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable"
+              xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <Commands package="guidOllamaAgentVSIXPackage">
+
+    <Menus>
+      <Menu guid="guidOllamaAgentCmdSet"
+            id="OllamaAgentMenu"
+            priority="0x1000"
+            type="Menu">
+
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_MENU_EXTENSIONS"/>
+
+        <Strings>
+          <ButtonText>Ollama Agent</ButtonText>
+          <CommandName>Ollama Agent</CommandName>
+        </Strings>
+      </Menu>
+    </Menus>
+
+    <Groups>
+      <Group guid="guidOllamaAgentCmdSet"
+             id="OllamaAgentGroup"
+             priority="0x0600">
+        <Parent guid="guidOllamaAgentCmdSet" id="OllamaAgentMenu"/>
+      </Group>
+    </Groups>
+
+    <Buttons>
+
+      <Button guid="guidOllamaAgentCmdSet"
+              id="cmdOpenWindow"
+              priority="0x0100"
+              type="Button">
+        <Parent guid="guidOllamaAgentCmdSet" id="OllamaAgentGroup"/>
+        <Strings>
+          <ButtonText>Open Chat Window</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="guidOllamaAgentCmdSet"
+              id="cmdSettings"
+              priority="0x0200"
+              type="Button">
+        <Parent guid="guidOllamaAgentCmdSet" id="OllamaAgentGroup"/>
+        <Strings>
+          <ButtonText>Settings</ButtonText>
+        </Strings>
+      </Button>
+
+      <Button guid="guidOllamaAgentCmdSet"
+              id="cmdRefreshModels"
+              priority="0x0300"
+              type="Button">
+        <Parent guid="guidOllamaAgentCmdSet" id="OllamaAgentGroup"/>
+        <Strings>
+          <ButtonText>Refresh Models</ButtonText>
+        </Strings>
+      </Button>
+
+    </Buttons>
+
+  </Commands>
+
+  <Symbols>
+
+    <GuidSymbol name="guidOllamaAgentCmdSet"
+                value="{a7f0d2e3-8f11-4d5a-9c11-2d5c1a2f9b33}" />
+
+    <GuidSymbol name="guidOllamaAgentVSIXPackage"
+                value="{b94239c4-4aa9-4a3d-b23c-d720cfb207b1}" />
+
+    <!-- CRITICAL: command IDs MUST be declared -->
+    <IDSymbol name="cmdOpenWindow" value="0x0100" />
+    <IDSymbol name="cmdSettings" value="0x0101" />
+    <IDSymbol name="cmdRefreshModels" value="0x0102" />
+
+    <IDSymbol name="OllamaAgentMenu" value="0x1000" />
+    <IDSymbol name="OllamaAgentGroup" value="0x2000" />
+
+  </Symbols>
+
+</CommandTable>

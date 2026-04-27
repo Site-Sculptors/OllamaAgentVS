@@ -10,9 +10,9 @@ namespace OllamaAgent.VSIX
 			InitializeComponent();
 		}
 
-		private async void AskButton_Click(object sender, RoutedEventArgs e)
+		private void AskButton_Click(object sender, RoutedEventArgs e)
 		{
-			OutputBox.Text = "Agent ready... (next step: Ollama integration)";
+			OutputBox.Text = "Ollama Agent ready (next step: connect model)";
 		}
 	}
 }

@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/.github/">
+    <File Path="copilot-instructions.md" />
+  </Folder>
+  <Folder Name="/NewFolder1/" />
   <Project Path="OllamaAgent.VSIX/OllamaAgent.VSIX.csproj">
     <Deploy />
   </Project>
