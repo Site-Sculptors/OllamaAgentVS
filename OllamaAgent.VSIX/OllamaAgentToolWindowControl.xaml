@@ -7,20 +7,60 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Button
-            Margin="5"
-            Padding="6"
-            Click="AskButton_Click"
-            Content="Ask Ollama Agent" />
+        <!--  Simple header  -->
+        <StackPanel
+            Grid.Row="0"
+            Margin="10"
+            Orientation="Horizontal">
+            <Button
+                x:Name="ReloadButton"
+                Margin="5"
+                Content="Reload" />
+            <Button
+                x:Name="SettingsButton"
+                Margin="5"
+                Content="Settings" />
+            <Button
+                x:Name="NewThreadButton"
+                Margin="5"
+                Content="New" />
+        </StackPanel>
 
-        <TextBox
-            x:Name="OutputBox"
+        <!--  Chat display  -->
+        <ListBox
+            x:Name="ChatHistory"
             Grid.Row="1"
-            Margin="5"
+            Margin="10">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding DisplayText}" TextWrapping="Wrap" />
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!--  Simple input  -->
+        <TextBox
+            x:Name="InputBox"
+            Grid.Row="2"
+            MinHeight="60"
+            Margin="10"
             AcceptsReturn="True"
-            TextWrapping="Wrap"
-            VerticalScrollBarVisibility="Auto" />
+            TextWrapping="Wrap" />
+        <StackPanel
+            Grid.Row="3"
+            Margin="10"
+            Orientation="Horizontal">
+            <ComboBox
+                x:Name="ModelSelector"
+                Width="120"
+                Margin="5"
+                ItemsSource="{Binding Models}"
+                SelectedItem="{Binding SelectedModel, Mode=TwoWay}"
+                />
+        </StackPanel>
     </Grid>
 </UserControl>
