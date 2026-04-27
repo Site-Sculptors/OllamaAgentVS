@@ -42,6 +42,28 @@ namespace OllamaAgent.VSIX
 			set { _endpoint = value; OnPropertyChanged(); }
 		}
 
+		private ICommand _sendCommand;
+		public ICommand SendCommand =>
+			_sendCommand ??= new AsyncRelayCommand(SendMessageAsync, () => !string.IsNullOrWhiteSpace(SelectedModel));
+
+		private ICommand _reloadCommand;
+		public ICommand ReloadCommand =>
+			_reloadCommand ??= new AsyncRelayCommand(LoadModelsAsync);
+
+		private ICommand _settingsCommand;
+		public ICommand SettingsCommand =>
+			_settingsCommand ??= new AsyncRelayCommand(async () => { await Task.CompletedTask; });
+
+		private ICommand _newThreadCommand;
+		public ICommand NewThreadCommand =>
+			_newThreadCommand ??= new AsyncRelayCommand(ClearChatAsync);
+
+		private async Task ClearChatAsync()
+		{
+			ChatHistory.Clear();
+			await Task.CompletedTask;
+		}
+
 		public async Task LoadModelsAsync()
 		{
 			Models.Clear();

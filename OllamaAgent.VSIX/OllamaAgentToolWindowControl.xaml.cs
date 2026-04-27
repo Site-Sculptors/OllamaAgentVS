@@ -20,13 +20,22 @@ namespace OllamaAgent.VSIX
 			InitializeComponent();
 			DataContext = _viewModel;
 
+			// Auto-scroll to bottom when new messages arrive
+			_viewModel.ChatHistory.CollectionChanged += (s, e) =>
+			{
+				if (ChatHistory != null && ChatHistory.Items.Count > 0)
+				{
+					ChatHistory.ScrollIntoView(ChatHistory.Items[ChatHistory.Items.Count - 1]);
+				}
+			};
+
 			// Set theme and load models after controls are loaded
-			//Loaded += async (s, e) =>
-			//{
-			//	await Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-			//	SetVsThemeColors();
-			//	await _viewModel.LoadModelsAsync();
-			//};
+			Loaded += async (s, e) =>
+			{
+				await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+				SetVsThemeColors();
+				await _viewModel.LoadModelsAsync();
+			};
 		}
 
 		private void SetVsThemeColors()

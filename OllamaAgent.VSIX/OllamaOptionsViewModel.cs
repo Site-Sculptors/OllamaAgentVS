@@ -98,8 +98,7 @@ namespace OllamaAgent.VSIX
 		}
 
 		public event PropertyChangedEventHandler PropertyChanged;
-
-		private void OnPropertyChanged([CallerMemberName] string name = null)
+		protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string name = null)
 			=> PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 	}
 }

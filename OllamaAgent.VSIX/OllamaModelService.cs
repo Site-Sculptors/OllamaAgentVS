@@ -78,7 +78,8 @@ namespace OllamaAgent.VSIX
 			var request = new
 			{
 				model = model,
-				prompt = prompt
+				prompt = prompt,
+				stream = false
 			};
 			var content = new StringContent(JsonSerializer.Serialize(request), System.Text.Encoding.UTF8, "application/json");
 

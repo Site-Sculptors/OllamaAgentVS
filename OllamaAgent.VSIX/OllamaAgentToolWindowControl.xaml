@@ -37,10 +37,11 @@
         <ListBox
             x:Name="ChatHistory"
             Grid.Row="1"
-            Margin="10">
+            Margin="10"
+            ItemsSource="{Binding ChatHistory}">
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <TextBlock Text="{Binding DisplayText}" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding Display}" TextWrapping="Wrap" />
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
@@ -52,6 +53,7 @@
             MinHeight="60"
             Margin="10"
             AcceptsReturn="True"
+            Text="{Binding Input, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
             TextWrapping="Wrap" />
         <StackPanel
             Grid.Row="3"
