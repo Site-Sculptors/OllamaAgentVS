@@ -19,13 +19,14 @@ namespace OllamaAgent.VSIX
 		{
 			InitializeComponent();
 			DataContext = _viewModel;
-			SetVsThemeColors();
 
-			// Load models for ComboBox
-			Loaded += async (s, e) =>
-			{
-				await _viewModel.LoadModelsAsync();
-			};
+			// Set theme and load models after controls are loaded
+			//Loaded += async (s, e) =>
+			//{
+			//	await Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+			//	SetVsThemeColors();
+			//	await _viewModel.LoadModelsAsync();
+			//};
 		}
 
 		private void SetVsThemeColors()
@@ -37,23 +38,15 @@ namespace OllamaAgent.VSIX
 				Guid fgGuid = ToolWindowText;
 				uint bgColor = vsUIShell.GetThemedColor(ref bgGuid, null, 0xFF2D2D30); // default: dark gray
 				uint fgColor = vsUIShell.GetThemedColor(ref fgGuid, null, 0xFFF1F1F1); // default: light gray
+				System.Diagnostics.Debug.WriteLine($"bgColor: 0x{bgColor:X8}, fgColor: 0x{fgColor:X8}");
 				Color bg = ColorFromUInt(bgColor);
 				Color fg = ColorFromUInt(fgColor);
 
-				this.Background = new SolidColorBrush(bg);
+			this.Background = new SolidColorBrush(bg);
+			if (ChatHistory != null)
+			{
 				ChatHistory.Background = new SolidColorBrush(bg);
 				ChatHistory.Foreground = new SolidColorBrush(fg);
-				ReloadButton.Background = new SolidColorBrush(bg);
-				ReloadButton.Foreground = new SolidColorBrush(fg);
-				SettingsButton.Background = new SolidColorBrush(bg);
-				SettingsButton.Foreground = new SolidColorBrush(fg);
-				NewThreadButton.Background = new SolidColorBrush(bg);
-				NewThreadButton.Foreground = new SolidColorBrush(fg);
-				InputBox.Background = new SolidColorBrush(bg);
-				InputBox.Foreground = new SolidColorBrush(fg);
-				ModelSelector.Background = new SolidColorBrush(bg);
-				ModelSelector.Foreground = new SolidColorBrush(fg);
-
 				// Set ListBox item foregrounds (for chat messages)
 				var itemTemplate = ChatHistory.ItemTemplate;
 				if (itemTemplate != null)
@@ -62,24 +55,44 @@ namespace OllamaAgent.VSIX
 					ChatHistory.ItemContainerStyle.Setters.Add(new Setter(Control.ForegroundProperty, new SolidColorBrush(fg)));
 				}
 			}
+			if (ReloadButton != null)
+			{
+				ReloadButton.Background = new SolidColorBrush(bg);
+				ReloadButton.Foreground = new SolidColorBrush(fg);
+			}
+			if (SettingsButton != null)
+			{
+				SettingsButton.Background = new SolidColorBrush(bg);
+				SettingsButton.Foreground = new SolidColorBrush(fg);
+			}
+			if (NewThreadButton != null)
+			{
+				NewThreadButton.Background = new SolidColorBrush(bg);
+				NewThreadButton.Foreground = new SolidColorBrush(fg);
+			}
+			if (InputBox != null)
+			{
+				InputBox.Background = new SolidColorBrush(bg);
+				InputBox.Foreground = new SolidColorBrush(fg);
+			}
+			if (ModelSelector != null)
+			{
+				ModelSelector.Background = new SolidColorBrush(bg);
+				ModelSelector.Foreground = new SolidColorBrush(fg);
+			}
+			}
 		}
 
 		private static Color ColorFromUInt(uint color)
 		{
 			byte a = (byte)((color >> 24) & 0xFF);
+			if (a == 0) a = 0xFF; // Default to opaque if alpha is zero
 			byte r = (byte)((color >> 16) & 0xFF);
 			byte g = (byte)((color >> 8) & 0xFF);
 			byte b = (byte)(color & 0xFF);
 			return Color.FromArgb(a, r, g, b);
 		}
 
-		private void AskButton_Click(object sender, RoutedEventArgs e)
-		{
-			if (!string.IsNullOrWhiteSpace(_viewModel.Input))
-			{
-				_viewModel.ChatHistory.Add(new ChatMessage { Sender = "You", Message = _viewModel.Input });
-				_viewModel.Input = string.Empty;
-			}
-		}
+		// All button logic is now handled via MVVM ICommand bindings in the ViewModel.
 	}
 }

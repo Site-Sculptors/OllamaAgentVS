@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using System.Windows.Input;
 
 namespace OllamaAgent.VSIX
 {
@@ -50,6 +51,26 @@ namespace OllamaAgent.VSIX
 			if (Models.Count > 0 && (string.IsNullOrWhiteSpace(SelectedModel) || !Models.Contains(SelectedModel)))
 			{
 				SelectedModel = Models[0];
+			}
+		}
+
+		public async Task SendMessageAsync()
+		{
+			var userInput = Input;
+			if (string.IsNullOrWhiteSpace(userInput) || string.IsNullOrWhiteSpace(SelectedModel))
+				return;
+
+			ChatHistory.Add(new ChatMessage { Sender = "You", Message = userInput });
+			Input = string.Empty;
+
+			var response = await _modelService.GenerateCompletionAsync(Endpoint, SelectedModel, userInput);
+			if (!string.IsNullOrWhiteSpace(response))
+			{
+				ChatHistory.Add(new ChatMessage { Sender = SelectedModel, Message = response });
+			}
+			else
+			{
+				ChatHistory.Add(new ChatMessage { Sender = "System", Message = "No response from model." });
 			}
 		}
 

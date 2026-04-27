@@ -19,15 +19,18 @@
             <Button
                 x:Name="ReloadButton"
                 Margin="5"
-                Content="Reload" />
+                Content="Reload"
+                Command="{Binding ReloadCommand}" />
             <Button
                 x:Name="SettingsButton"
                 Margin="5"
-                Content="Settings" />
+                Content="Settings"
+                Command="{Binding SettingsCommand}" />
             <Button
                 x:Name="NewThreadButton"
                 Margin="5"
-                Content="New" />
+                Content="New"
+                Command="{Binding NewThreadCommand}" />
         </StackPanel>
 
         <!--  Chat display  -->
@@ -59,8 +62,12 @@
                 Width="120"
                 Margin="5"
                 ItemsSource="{Binding Models}"
-                SelectedItem="{Binding SelectedModel, Mode=TwoWay}"
-                />
+                SelectedItem="{Binding SelectedModel, Mode=TwoWay}" />
+            <Button
+                Content="Send"
+                Margin="5"
+                Width="60"
+                Command="{Binding SendCommand}" />
         </StackPanel>
     </Grid>
 </UserControl>
