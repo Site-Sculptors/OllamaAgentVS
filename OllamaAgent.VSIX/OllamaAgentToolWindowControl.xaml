@@ -1,0 +1,25 @@
+﻿<UserControl x:Class="OllamaAgent.VSIX.OllamaAgentToolWindowControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Button x:Name="AskButton"
+                Content="Ask Ollama Agent"
+                Margin="5"
+                Padding="6"
+                Click="AskButton_Click"/>
+
+        <TextBox x:Name="OutputBox"
+                 Grid.Row="1"
+                 Margin="5"
+                 AcceptsReturn="True"
+                 VerticalScrollBarVisibility="Auto"
+                 TextWrapping="Wrap"/>
+    </Grid>
+
+</UserControl>
