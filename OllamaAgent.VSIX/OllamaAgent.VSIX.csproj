@@ -14,6 +14,18 @@
     <None Remove="OllamaAgentToolWindowControl.xaml" />
   </ItemGroup>
   <ItemGroup>
+    <VSCTCompile Include="OllamaAgent.vsct">
+      <ResourceName>Menus.ctmenu</ResourceName>
+    </VSCTCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="$(IntermediateOutputPath)OllamaAgent.cto">
+      <Link>Menus.ctmenu</Link>
+      <IncludeInVSIX>true</IncludeInVSIX>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
     <ProjectCapability Include="CreateVsixContainer" />
   </ItemGroup>
   <ItemGroup>

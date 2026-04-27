@@ -8,7 +8,9 @@ namespace OllamaAgent.VSIX
 {
 	internal sealed class OllamaAgentCommand
 	{
-		public const int CommandId = 0x0100;
+		public const int OpenWindowId = 0x0100;
+		public const int SettingsId = 0x0101;
+		public const int RefreshModelsId = 0x0102;
 
 		public static readonly Guid CommandSet =
 			new Guid("a7f0d2e3-8f11-4d5a-9c11-2d5c1a2f9b33");
@@ -19,39 +21,37 @@ namespace OllamaAgent.VSIX
 		{
 			_package = package;
 
-			var menuCommandID = new CommandID(CommandSet, CommandId);
-
-			// Use OleMenuCommand for modern VSIX reliability
-			var menuItem = new OleMenuCommand(Execute, menuCommandID);
-
-			commandService.AddCommand(menuItem);
+			commandService.AddCommand(new MenuCommand(ExecuteOpenWindow, new CommandID(CommandSet, OpenWindowId)));
+			commandService.AddCommand(new MenuCommand(ExecuteSettings, new CommandID(CommandSet, SettingsId)));
+			commandService.AddCommand(new MenuCommand(ExecuteRefreshModels, new CommandID(CommandSet, RefreshModelsId)));
 		}
 
 		public static async Task InitializeAsync(AsyncPackage package)
 		{
 			await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(package.DisposalToken);
 
-			// IMPORTANT: use IMenuCommandService (safer + correct abstraction)
-			var service = await package.GetServiceAsync(typeof(IMenuCommandService));
+			var service = await package.GetServiceAsync(typeof(IMenuCommandService)) as OleMenuCommandService;
 
-			var commandService = service as OleMenuCommandService;
-
-			if (commandService == null)
-			{
-				System.Diagnostics.Debug.WriteLine(
-					"OllamaAgent: OleMenuCommandService is NULL. Command NOT registered.");
-				return;
-			}
-
-			new OllamaAgentCommand(package, commandService);
+			if (service != null)
+				new OllamaAgentCommand(package, service);
 		}
 
-		private void Execute(object sender, EventArgs e)
+		private void ExecuteOpenWindow(object sender, EventArgs e)
 		{
-			System.Windows.Forms.MessageBox.Show("Inside Execute");
 			ThreadHelper.ThrowIfNotOnUIThread();
-			System.Windows.Forms.MessageBox.Show("COMMAND EXECUTED");
 			_ = ShowToolWindowAsync();
+		}
+
+		private void ExecuteSettings(object sender, EventArgs e)
+		{
+			ThreadHelper.ThrowIfNotOnUIThread();
+			// later: open options window
+		}
+
+		private void ExecuteRefreshModels(object sender, EventArgs e)
+		{
+			ThreadHelper.ThrowIfNotOnUIThread();
+			// later: trigger model refresh
 		}
 
 		private async Task ShowToolWindowAsync()
@@ -65,9 +65,7 @@ namespace OllamaAgent.VSIX
 				cancellationToken: _package.DisposalToken);
 
 			if (window?.Frame is Microsoft.VisualStudio.Shell.Interop.IVsWindowFrame frame)
-			{
 				Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(frame.Show());
-			}
 		}
 	}
 }

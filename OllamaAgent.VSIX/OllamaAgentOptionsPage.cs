@@ -1,88 +1,41 @@
-﻿using System.Collections.Generic;
-using System.ComponentModel;
-using System.Drawing.Design;
+﻿using System.ComponentModel;
+using System.Windows;
 
 using Microsoft.VisualStudio.Shell;
 
 namespace OllamaAgent.VSIX
 {
-	public class OllamaAgentOptionsPage : DialogPage
+	public class OllamaAgentOptionsPage : UIElementDialogPage
 	{
-		private string ollamaEndpoint = "http://localhost:11434";
-		private string defaultModel = "qwen2.5-coder:14b";
-		private bool agentEnabled = true;
+		private OllamaOptionsControl _control;
 
-		private List<string> availableModels = new List<string>();
+		public OllamaOptionsViewModel ViewModel => _control?.ViewModel;
 
-		// -----------------------------
-		// CORE SETTINGS
-		// -----------------------------
-
-		[Category("General")]
-		[DisplayName("Ollama Endpoint")]
-		[Description("URL of the local Ollama server (example: http://localhost:11434).")]
-		public string OllamaEndpoint
+		protected override UIElement Child
 		{
-			get => ollamaEndpoint;
-			set => ollamaEndpoint = value;
+			get
+			{
+				if (_control == null)
+				{
+					_control = new OllamaOptionsControl();
+				}
+
+				return _control;
+			}
 		}
 
-		[Category("General")]
-		[DisplayName("Agent Enabled")]
-		[Description("Enable or disable the Ollama Agent.")]
-		public bool AgentEnabled
+		protected override void OnActivate(CancelEventArgs e)
 		{
-			get => agentEnabled;
-			set => agentEnabled = value;
+			base.OnActivate(e);
+
+			ViewModel?.LoadAsync();
 		}
 
-		[Category("General")]
-		[DisplayName("Default Model")]
-		[Description("Model used for code generation and analysis.")]
-		[Editor(typeof(ModelDropdownEditor), typeof(UITypeEditor))]
-		public string DefaultModel
+		protected override void OnApply(PageApplyEventArgs e)
 		{
-			get => defaultModel;
-			set => defaultModel = value;
-		}
+			base.OnApply(e);
 
-		// -----------------------------
-		// MODEL STORAGE (runtime only)
-		// -----------------------------
-
-		[Browsable(false)]
-		public List<string> AvailableModels
-		{
-			get => availableModels;
-			set => availableModels = value;
-		}
-
-		// -----------------------------
-		// ACTION: REFRESH MODELS
-		// -----------------------------
-
-		[Category("Actions")]
-		[DisplayName("Refresh Models")]
-		[Description("Fetch available models from Ollama server.")]
-		[Editor(typeof(RefreshModelsEditor), typeof(UITypeEditor))]
-		public string RefreshModelsTrigger
-		{
-			get => "Refresh";
-			set { }
-		}
-
-		// -----------------------------
-		// ACTION: TEST CONNECTION
-		// -----------------------------
-
-		[Category("Actions")]
-		[DisplayName("Test Connection")]
-		[Description("Test connection to Ollama endpoint.")]
-		[Editor(typeof(TestConnectionEditor), typeof(UITypeEditor))]
-		public string TestConnectionTrigger
-		{
-			get => "Test";
-			set { }
+			ViewModel?.Save();
 		}
 	}
 }

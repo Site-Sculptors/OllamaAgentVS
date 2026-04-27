@@ -1,30 +1,74 @@
-﻿<CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable"
-              xmlns:xs="http://www.w3.org/2001/XMLSchema">
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable">
+
+  <Extern href="stdidcmd.h" />
+  <Extern href="vsshlids.h" />
+
+  <Symbols>
+
+    <GuidSymbol name="guidOllamaAgentVSIXPackage"
+                value="{b94239c4-4aa9-4a3d-b23c-d720cfb207b1}" />
+
+    <GuidSymbol name="guidOllamaAgentCmdSet"
+                value="{a7f0d2e3-8f11-4d5a-9c11-2d5c1a2f9b33}">
+
+      <IDSymbol name="MyGroup" value="0x1020"/>
+      <IDSymbol name="SubMenuOllamaAgent" value="0x1030"/>
+      <!-- NEW: ID for the "Ollama Agent" submenu -->
+      <IDSymbol name="SubMenuGroup" value="0x1040"/>
+      <!-- NEW: ID for the group inside the submenu -->
+
+      <IDSymbol name="cmdOpenWindow" value="0x0100"/>
+      <IDSymbol name="cmdSettings" value="0x0101"/>
+      <IDSymbol name="cmdRefreshModels" value="0x0102"/>
+
+    </GuidSymbol>
+
+    <GuidSymbol name="guidSHLMainMenu"
+                value="{d309f791-903f-11d0-9efc-00a0c911004f}">
+      <IDSymbol name="IDM_VS_MENU_EXTENSIONS" value="0x0091"/>
+    </GuidSymbol>
+
+  </Symbols>
 
   <Commands package="guidOllamaAgentVSIXPackage">
 
+    <Groups>
+      <!-- This group is still under Extensions, it will host our new submenu -->
+      <Group guid="guidOllamaAgentCmdSet"
+             id="MyGroup"
+             priority="0x0600">
+        <Parent guid="guidSHLMainMenu"
+                id="IDM_VS_MENU_EXTENSIONS"/>
+      </Group>
+
+      <!-- NEW: This is the group that will contain your actual commands -->
+      <Group guid="guidOllamaAgentCmdSet"
+             id="SubMenuGroup"
+             priority="0x0100">
+        <!-- Adjust priority as needed within the submenu -->
+        <Parent guid="guidOllamaAgentCmdSet"
+                id="SubMenuOllamaAgent"/>
+        <!-- Parent is the new submenu -->
+      </Group>
+    </Groups>
+
     <Menus>
+      <!-- NEW: Define the "Ollama Agent" submenu -->
       <Menu guid="guidOllamaAgentCmdSet"
-            id="OllamaAgentMenu"
-            priority="0x1000"
-            type="Menu">
-
-        <Parent guid="guidSHLMainMenu" id="IDM_VS_MENU_EXTENSIONS"/>
-
+            id="SubMenuOllamaAgent"
+            priority="0x0100" >
+        <Parent guid="guidOllamaAgentCmdSet"
+                id="MyGroup"/>
+        <!-- Parent is the group directly under Extensions -->
         <Strings>
           <ButtonText>Ollama Agent</ButtonText>
-          <CommandName>Ollama Agent</CommandName>
+          <CommandName>OllamaAgent</CommandName>
         </Strings>
       </Menu>
     </Menus>
 
-    <Groups>
-      <Group guid="guidOllamaAgentCmdSet"
-             id="OllamaAgentGroup"
-             priority="0x0600">
-        <Parent guid="guidOllamaAgentCmdSet" id="OllamaAgentMenu"/>
-      </Group>
-    </Groups>
 
     <Buttons>
 
@@ -32,9 +76,12 @@
               id="cmdOpenWindow"
               priority="0x0100"
               type="Button">
-        <Parent guid="guidOllamaAgentCmdSet" id="OllamaAgentGroup"/>
+        <Parent guid="guidOllamaAgentCmdSet"
+                id="SubMenuGroup"/>
+        <!-- PARENT CHANGED to the new group -->
         <Strings>
           <ButtonText>Open Chat Window</ButtonText>
+          <CommandName>.OllamaAgent.OpenWindow</CommandName>
         </Strings>
       </Button>
 
@@ -42,9 +89,12 @@
               id="cmdSettings"
               priority="0x0200"
               type="Button">
-        <Parent guid="guidOllamaAgentCmdSet" id="OllamaAgentGroup"/>
+        <Parent guid="guidOllamaAgentCmdSet"
+                id="SubMenuGroup"/>
+        <!-- PARENT CHANGED to the new group -->
         <Strings>
           <ButtonText>Settings</ButtonText>
+          <CommandName>.OllamaAgent.Settings</CommandName>
         </Strings>
       </Button>
 
@@ -52,32 +102,17 @@
               id="cmdRefreshModels"
               priority="0x0300"
               type="Button">
-        <Parent guid="guidOllamaAgentCmdSet" id="OllamaAgentGroup"/>
+        <Parent guid="guidOllamaAgentCmdSet"
+                id="SubMenuGroup"/>
+        <!-- PARENT CHANGED to the new group -->
         <Strings>
           <ButtonText>Refresh Models</ButtonText>
+          <CommandName>.OllamaAgent.RefreshModels</CommandName>
         </Strings>
       </Button>
 
     </Buttons>
 
   </Commands>
-
-  <Symbols>
-
-    <GuidSymbol name="guidOllamaAgentCmdSet"
-                value="{a7f0d2e3-8f11-4d5a-9c11-2d5c1a2f9b33}" />
-
-    <GuidSymbol name="guidOllamaAgentVSIXPackage"
-                value="{b94239c4-4aa9-4a3d-b23c-d720cfb207b1}" />
-
-    <!-- CRITICAL: command IDs MUST be declared -->
-    <IDSymbol name="cmdOpenWindow" value="0x0100" />
-    <IDSymbol name="cmdSettings" value="0x0101" />
-    <IDSymbol name="cmdRefreshModels" value="0x0102" />
-
-    <IDSymbol name="OllamaAgentMenu" value="0x1000" />
-    <IDSymbol name="OllamaAgentGroup" value="0x2000" />
-
-  </Symbols>
 
 </CommandTable>
