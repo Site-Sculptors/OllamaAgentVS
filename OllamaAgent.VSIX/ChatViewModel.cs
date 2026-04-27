@@ -15,11 +15,22 @@ namespace OllamaAgent.VSIX
 
 	public class ChatViewModel : INotifyPropertyChanged
 	{
+		public ChatViewModel()
+		{
+			_ = LoadModelsAsync();
+		}
+
 		private string _input;
 		public string Input
 		{
 			get => _input;
-			set { _input = value; OnPropertyChanged(); }
+			set
+			{
+				_input = value;
+				OnPropertyChanged();
+				if (_sendCommand is AsyncRelayCommand arc)
+					arc.RaiseCanExecuteChanged();
+			}
 		}
 
 		public ObservableCollection<ChatMessage> ChatHistory { get; } = new ObservableCollection<ChatMessage>();
@@ -32,7 +43,13 @@ namespace OllamaAgent.VSIX
 		public string SelectedModel
 		{
 			get => _selectedModel;
-			set { _selectedModel = value; OnPropertyChanged(); }
+			set
+			{
+				_selectedModel = value;
+				OnPropertyChanged();
+				if (_sendCommand is AsyncRelayCommand arc)
+					arc.RaiseCanExecuteChanged();
+			}
 		}
 
 		private string _endpoint = "http://localhost:11434";

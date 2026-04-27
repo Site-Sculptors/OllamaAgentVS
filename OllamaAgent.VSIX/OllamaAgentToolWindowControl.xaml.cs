@@ -30,12 +30,12 @@ namespace OllamaAgent.VSIX
 			};
 
 			// Set theme and load models after controls are loaded
-			Loaded += async (s, e) =>
-			{
-				await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-				SetVsThemeColors();
-				await _viewModel.LoadModelsAsync();
-			};
+			//Loaded += async (s, e) =>
+			//{
+			//	await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+			//	SetVsThemeColors();
+			//	await _viewModel.LoadModelsAsync();
+			//};
 		}
 
 		private void SetVsThemeColors()

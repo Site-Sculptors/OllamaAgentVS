@@ -1,0 +1,11 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Experimental Instance",
+      "type": "vsix",
+      "request": "launch",
+      "project": "${workspaceFolder}/OllamaAgent.VSIX/OllamaAgent.VSIX.csproj"
+    }
+  ]
+}
