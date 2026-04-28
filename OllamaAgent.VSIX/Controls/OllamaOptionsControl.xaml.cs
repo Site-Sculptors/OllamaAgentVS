@@ -1,6 +1,8 @@
-﻿using System.Windows.Controls;
+﻿using OllamaAgent.VSIX.ViewModels;
 
-namespace OllamaAgent.VSIX
+using System.Windows.Controls;
+
+namespace OllamaAgent.VSIX.Controls
 {
 	public partial class OllamaOptionsControl : UserControl
 	{

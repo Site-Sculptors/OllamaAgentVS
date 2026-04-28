@@ -1,5 +1,7 @@
 ﻿using Microsoft.VisualStudio.Shell;
 
+using OllamaAgent.VSIX.Controls;
+
 using System.Runtime.InteropServices;
 
 namespace OllamaAgent.VSIX

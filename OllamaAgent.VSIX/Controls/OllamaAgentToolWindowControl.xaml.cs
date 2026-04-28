@@ -4,20 +4,23 @@ using System.Windows.Media;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using System;
+using OllamaAgent.VSIX.ViewModels;
 
-namespace OllamaAgent.VSIX
+namespace OllamaAgent.VSIX.Controls
 {
 	public partial class OllamaAgentToolWindowControl : UserControl
 	{
-		private readonly ChatViewModel _viewModel = new ChatViewModel();
-
 		// VS theme color GUIDs
 		private static readonly Guid ToolWindowBackground = new Guid("1ded0138-47ce-435e-84ef-9ec1f439b749");
 		private static readonly Guid ToolWindowText = new Guid("5c4976d7-3727-4b11-8c6c-2a1b8e1f1c5e");
 
+		private readonly ChatViewModel _viewModel;
+
 		public OllamaAgentToolWindowControl()
 		{
 			InitializeComponent();
+			var ollamaService = new OllamaAgent.VSIX.OllamaModelService();
+			_viewModel = new ChatViewModel(ollamaService);
 			DataContext = _viewModel;
 
 			// Auto-scroll to bottom when new messages arrive

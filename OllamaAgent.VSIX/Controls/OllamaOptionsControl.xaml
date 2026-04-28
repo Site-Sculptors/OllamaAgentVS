@@ -1,12 +1,14 @@
 ﻿<UserControl
-    x:Class="OllamaAgent.VSIX.OllamaOptionsControl"
+    x:Class="OllamaAgent.VSIX.Controls.OllamaOptionsControl"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="clr-namespace:OllamaAgent.VSIX">
+    xmlns:converters="clr-namespace:OllamaAgent.VSIX.Converters"
+    xmlns:viewModels="clr-namespace:OllamaAgent.VSIX.ViewModels">
     <UserControl.DataContext>
-        <local:OllamaOptionsViewModel />
+        <viewModels:OllamaOptionsViewModel />
     </UserControl.DataContext>
     <UserControl.Resources>
+        <converters:ServerStatusToBrushConverter x:Key="ServerStatusToBrushConverter" />
         <Style TargetType="Button">
             <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" />
             <Setter Property="Template">
@@ -29,12 +31,47 @@
     </UserControl.Resources>
 
     <StackPanel MinWidth="300" Margin="12">
-
+        <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+            <Ellipse
+                Width="8"
+                Height="8"
+                Fill="{Binding Status, Converter={StaticResource ServerStatusToBrushConverter}}" />
+            <Button
+                x:Name="StartServerButton"
+                Margin="5,0,20,0"
+                Background="Transparent"
+                Command="{Binding StartServerCommand}"
+                Content="{Binding Status}"
+                Foreground="{Binding Status, Converter={StaticResource ServerStatusToBrushConverter}}"
+                ToolTip="Click to start the Ollama server" />
+        </StackPanel>
         <TextBlock Text="Ollama Endpoint" />
         <TextBox Text="{Binding Endpoint, UpdateSourceTrigger=PropertyChanged}" />
 
-        <TextBlock Margin="0,10,0,0" Text="Model" />
-        <ComboBox ItemsSource="{Binding Models}" SelectedItem="{Binding SelectedModel}" />
+        <!--  Models Directory Picker  -->
+        <TextBlock Margin="0,8,0,0" VerticalAlignment="Center" Text="Models Directory:" />
+        <StackPanel
+            VerticalAlignment="Center"
+            Orientation="Horizontal">
+            <TextBox
+                Width="180"
+                VerticalAlignment="Center"
+                IsReadOnly="True"
+                Text="{Binding ModelsDirectory}" />
+            <Button
+                Margin="8,0,0,0"
+                VerticalAlignment="Center"
+                Command="{Binding SelectModelsDirectoryCommand}"
+                Content="Browse..." />
+        </StackPanel>
+
+        <StackPanel
+            VerticalAlignment="Center"
+            Orientation="Vertical">
+            <TextBlock Margin="0,10,0,0" Text="Model" />
+            <ComboBox ItemsSource="{Binding Models}" SelectedItem="{Binding SelectedModel}" />
+        </StackPanel>
+        <TextBlock Margin="0,8,0,0" Foreground="DarkSlateGray" TextWrapping="Wrap" Text="{Binding TestConnectionMessage}" />
 
         <Grid Margin="0,10,0,0">
             <Grid.ColumnDefinitions>
@@ -45,7 +82,8 @@
 
             <CheckBox
                 Grid.Column="0"
-                Content="Enable Agent" VerticalAlignment="Center"
+                VerticalAlignment="Center"
+                Content="Enable Agent"
                 IsChecked="{Binding AgentEnabled}" />
 
             <Button

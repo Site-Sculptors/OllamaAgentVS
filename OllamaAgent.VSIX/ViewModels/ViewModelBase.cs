@@ -1,0 +1,230 @@
+﻿using CommunityToolkit.Mvvm.Input;
+
+using Microsoft.VisualStudio.Settings;
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace OllamaAgent.VSIX.ViewModels;
+
+using OllamaAgent.VSIX.Enums;
+
+using System.Collections.ObjectModel;
+using System.Net;
+using System.Net.Http;
+using System.Reflection.Metadata;
+using System.Security.Cryptography;
+using System.Threading;
+using System.Windows.Input;
+
+public class ViewModelBase : INotifyPropertyChanged
+{
+	public ObservableCollection<string> Models { get; } = new ObservableCollection<string>();
+	public event EventHandler<ServerStatus> StatusChanged;
+
+	public OllamaModelService OllamaService { get; }
+	private readonly CancellationTokenSource _monitorCts = new CancellationTokenSource();
+
+	public ViewModelBase(OllamaModelService ollamaModelService)
+	{
+		OllamaService = ollamaModelService;
+		StartServerMonitor(_monitorCts.Token);
+
+		StatusChanged += (s, status) =>
+		{
+			if (status == ServerStatus.Online)
+			{
+				_ = SafeLoadAsync();
+			}
+		};
+	}
+
+	private string _selectedModel;
+	public string SelectedModel
+	{
+		get => _selectedModel;
+		set
+		{
+			_selectedModel = value;
+			OnPropertyChanged();
+		}
+	}
+
+	private string _endpoint = "http://localhost:11434/v1";
+	public string Endpoint
+	{
+		get => _endpoint;
+		set
+		{
+			_endpoint = value;
+			OnPropertyChanged();
+		}
+	}
+
+	private ServerStatus _status;
+	public ServerStatus Status
+	{
+		get => _status;
+		protected set
+		{
+			if (_status != value)
+			{
+				_status = value;
+				OnPropertyChanged(nameof(Status));
+				StatusChanged?.Invoke(this, _status);
+			}
+		}
+	}
+
+	private string _ollamaEndpoint = "http://localhost:11434";
+	public string OllamaEndpoint
+	{
+		get => _ollamaEndpoint;
+		set
+		{
+			if (_ollamaEndpoint != value)
+			{
+				_ollamaEndpoint = value;
+				OnPropertyChanged(nameof(OllamaEndpoint));
+			}
+		}
+	}
+
+	private static readonly HttpClient _httpClient = new HttpClient();
+
+	private const string OllamaProcessName = "ollama"; // Adjust if the executable name is different
+	private const string OllamaStartArguments = "serve"; // Adjust if arguments are different
+
+	public async Task CheckOllamaOnlineAsync(CancellationToken cancellationToken = default)
+	{
+		try
+		{
+			var url = OllamaEndpoint.TrimEnd('/') + "/api/tags";
+			using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+			cts.CancelAfter(TimeSpan.FromSeconds(2));
+			using var response = await _httpClient.GetAsync(url, cts.Token);
+			if (response.IsSuccessStatusCode)
+			{
+				Status = ServerStatus.Online;
+			}
+			else
+			{
+				Status = ServerStatus.Offline;
+			}
+		}
+		catch
+		{
+			Status = ServerStatus.Offline;
+		}
+	}
+
+	private async void StartServerMonitor(CancellationToken token)
+	{
+		while (!token.IsCancellationRequested)
+		{
+			await CheckOllamaOnlineAsync(token);
+			for (int i = 0; i < 30; i++)
+			{
+				if (token.IsCancellationRequested) return;
+				await Task.Delay(1000, token); // 30 seconds total
+			}
+		}
+	}
+
+	private IAsyncRelayCommand _startServerCommand;
+	public IAsyncRelayCommand StartServerCommand =>
+		_startServerCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
+		{
+			try
+			{
+				Status = ServerStatus.Starting;
+				var processStartInfo = new System.Diagnostics.ProcessStartInfo
+				{
+					FileName = OllamaProcessName,
+					Arguments = OllamaStartArguments,
+					UseShellExecute = false,
+					CreateNoWindow = true
+				};
+				System.Diagnostics.Process.Start(processStartInfo);
+				// Optionally, wait a moment and check status
+				await Task.Delay(2000);
+				await CheckOllamaOnlineAsync();
+			}
+			catch (Exception)
+			{
+				Status = ServerStatus.Offline;
+			}
+		});
+
+
+	private IAsyncRelayCommand _testConnectionCommand;
+	public IAsyncRelayCommand TestConnectionCommand =>
+		_testConnectionCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
+	{
+		try
+		{
+			var models = await OllamaService.GetModelsAsync(Endpoint);
+
+			System.Diagnostics.Debug.WriteLine(
+				models.Count > 0
+					? "Ollama connection OK"
+					: "Ollama reachable but no models returned");
+		}
+		catch (Exception ex)
+		{
+			System.Diagnostics.Debug.WriteLine($"Ollama connection failed: {ex.Message}");
+		}
+	});
+
+	private IAsyncRelayCommand _refreshModelsCommand;
+	public IAsyncRelayCommand RefreshModelsCommand =>
+		_refreshModelsCommand ??= new AsyncRelayCommand<object>(async (parameter) => await SafeLoadAsync());
+
+	public async Task SafeLoadAsync()
+	{
+		try
+		{
+			Models.Clear();
+
+			var models = await OllamaService.GetModelsAsync(Endpoint);
+
+			foreach (var m in models)
+				Models.Add(m);
+
+			if (Models.Count > 0 &&
+				(string.IsNullOrWhiteSpace(SelectedModel) || !Models.Contains(SelectedModel)))
+			{
+				SelectedModel = Models[0];
+			}
+		}
+		catch (Exception ex)
+		{
+			// Log or handle exception as needed
+			System.Diagnostics.Debug.WriteLine($"Error loading models: {ex.Message}");
+		}
+	}
+
+
+	public event PropertyChangedEventHandler PropertyChanged;
+	protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string name = null)
+		=> PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+	protected virtual void Dispose(bool disposing)
+	{
+		if (disposing)
+		{
+			_monitorCts.Cancel();
+			_monitorCts.Dispose();
+		}
+	}
+
+	public void Dispose()
+	{
+		Dispose(true);
+		GC.SuppressFinalize(this);
+	}
+}

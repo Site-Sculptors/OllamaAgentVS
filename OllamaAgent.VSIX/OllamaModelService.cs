@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace OllamaAgent.VSIX
 {
-	internal sealed class OllamaModelService
+	public sealed class OllamaModelService
 	{
 		private static readonly HttpClient _httpClient = new HttpClient();
 

@@ -3,6 +3,9 @@ using System.Windows;
 
 using Microsoft.VisualStudio.Shell;
 
+using OllamaAgent.VSIX.Controls;
+using OllamaAgent.VSIX.ViewModels;
+
 namespace OllamaAgent.VSIX
 {
 	public class OllamaAgentOptionsPage : UIElementDialogPage
@@ -28,7 +31,7 @@ namespace OllamaAgent.VSIX
 		{
 			base.OnActivate(e);
 
-			ViewModel?.LoadAsync();
+			ViewModel?.SafeLoadAsync();
 		}
 
 		protected override void OnApply(PageApplyEventArgs e)
