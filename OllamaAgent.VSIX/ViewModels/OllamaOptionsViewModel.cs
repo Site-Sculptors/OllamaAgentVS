@@ -14,7 +14,7 @@ namespace OllamaAgent.VSIX.ViewModels
 	public class OllamaOptionsViewModel : ViewModelBase
 	{
 		// Parameterless constructor for XAML
-		public OllamaOptionsViewModel() : this(new OllamaAgent.VSIX.OllamaModelService()) { }
+		public OllamaOptionsViewModel() : this(new OllamaAgent.VSIX.OllamaModelService(), (OllamaAgentVSIXPackage)Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(OllamaAgentVSIXPackage))) { }
 
 		private bool _agentEnabled = true;
 		public bool AgentEnabled
@@ -51,7 +51,7 @@ namespace OllamaAgent.VSIX.ViewModels
 			set { _testConnectionMessage = value; OnPropertyChanged(); }
 		}
 
-		public OllamaOptionsViewModel(OllamaAgent.VSIX.OllamaModelService ollamaModelService) : base(ollamaModelService)
+		public OllamaOptionsViewModel(OllamaAgent.VSIX.OllamaModelService ollamaModelService, OllamaAgentVSIXPackage package) : base(ollamaModelService, package)
 		{
 			// Load from user settings
 			ModelsDirectory = Settings.Default.ModelsDirectory;

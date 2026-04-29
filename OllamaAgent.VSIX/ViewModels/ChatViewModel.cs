@@ -4,13 +4,14 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.Shell;
 using System.Windows.Input;
 
 namespace OllamaAgent.VSIX.ViewModels
 {
 	public class ChatViewModel : ViewModelBase
 	{
-		public ChatViewModel(OllamaAgent.VSIX.OllamaModelService ollamaModelService) : base(ollamaModelService)
+		public ChatViewModel(OllamaAgent.VSIX.OllamaModelService ollamaModelService, OllamaAgentVSIXPackage package) : base(ollamaModelService, package)
 		{
 			_ = SafeLoadAsync();
 		}
@@ -34,10 +35,7 @@ namespace OllamaAgent.VSIX.ViewModels
 		public ICommand SendCommand =>
 			_sendCommand ??= new AsyncRelayCommand(SendMessageAsync, () => !string.IsNullOrWhiteSpace(SelectedModel));		
 
-		private ICommand _settingsCommand;
-		public ICommand SettingsCommand =>
-			_settingsCommand ??= new AsyncRelayCommand(async () => { await Task.CompletedTask; });
-
+	   // SettingsCommand now inherited from ViewModelBase
 		private ICommand _newThreadCommand;
 		public ICommand NewThreadCommand =>
 			_newThreadCommand ??= new AsyncRelayCommand(ClearChatAsync);
@@ -47,6 +45,8 @@ namespace OllamaAgent.VSIX.ViewModels
 			ChatHistory.Clear();
 			await Task.CompletedTask;
 		}
+
+	   // OpenSettingsAsync now inherited from ViewModelBase
 
 		public async Task SendMessageAsync()
 		{

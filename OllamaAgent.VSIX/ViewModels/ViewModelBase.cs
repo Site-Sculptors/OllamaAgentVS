@@ -27,13 +27,15 @@ public class ViewModelBase : INotifyPropertyChanged
 	public event EventHandler<ServerStatus> StatusChanged;
 
 	public OllamaModelService OllamaService { get; }
+	protected OllamaAgentVSIXPackage Package { get; }
 	private readonly CancellationTokenSource _monitorCts = new CancellationTokenSource();
 
-	public ViewModelBase(OllamaModelService ollamaModelService)
+	public ViewModelBase(OllamaModelService ollamaModelService, OllamaAgentVSIXPackage package)
 	{
 		OllamaService = ollamaModelService;
+		Package = package;
+		LoadSettings();
 		StartServerMonitor(_monitorCts.Token);
-
 		StatusChanged += (s, status) =>
 		{
 			if (status == ServerStatus.Online)
@@ -54,15 +56,30 @@ public class ViewModelBase : INotifyPropertyChanged
 		}
 	}
 
-	private string _endpoint = "http://localhost:11434/v1";
+	private string _endpoint = "http://localhost:11434";
 	public string Endpoint
 	{
 		get => _endpoint;
 		set
 		{
-			_endpoint = value;
-			OnPropertyChanged();
+			if (_endpoint != value)
+			{
+				_endpoint = value;
+				OnPropertyChanged();
+			}
 		}
+	}
+
+	public void LoadSettings()
+	{
+		var persistedEndpoint = OllamaAgent.VSIX.Properties.Settings.Default.Endpoint;
+		Endpoint = string.IsNullOrWhiteSpace(persistedEndpoint) ? "http://localhost:11434" : persistedEndpoint;
+	}
+
+	public void SaveSettings()
+	{
+		OllamaAgent.VSIX.Properties.Settings.Default.Endpoint = Endpoint;
+		OllamaAgent.VSIX.Properties.Settings.Default.Save();
 	}
 
 	private ServerStatus _status;
@@ -149,13 +166,22 @@ public class ViewModelBase : INotifyPropertyChanged
 					UseShellExecute = false,
 					CreateNoWindow = true
 				};
+
+				// Set OLLAMA_MODELS from settings if available
+				var modelsDir = OllamaAgent.VSIX.Properties.Settings.Default.ModelsDirectory;
+				if (!string.IsNullOrWhiteSpace(modelsDir))
+				{
+					processStartInfo.EnvironmentVariables["OLLAMA_MODELS"] = modelsDir;
+				}
+
 				System.Diagnostics.Process.Start(processStartInfo);
-				// Optionally, wait a moment and check status
-				await Task.Delay(2000);
+				// Wait up to 5 seconds for server to start
+				await Task.Delay(5000);
 				await CheckOllamaOnlineAsync();
 			}
-			catch (Exception)
+			catch (Exception ex)
 			{
+				System.Diagnostics.Debug.WriteLine($"Failed to start Ollama server: {ex.Message}");
 				Status = ServerStatus.Offline;
 			}
 		});
@@ -184,6 +210,7 @@ public class ViewModelBase : INotifyPropertyChanged
 	public IAsyncRelayCommand RefreshModelsCommand =>
 		_refreshModelsCommand ??= new AsyncRelayCommand<object>(async (parameter) => await SafeLoadAsync());
 
+
 	public async Task SafeLoadAsync()
 	{
 		try
@@ -208,6 +235,23 @@ public class ViewModelBase : INotifyPropertyChanged
 		}
 	}
 
+	private IAsyncRelayCommand _settingsCommand;
+	public IAsyncRelayCommand SettingsCommand =>
+		_settingsCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
+		{
+			await Task.Yield();
+			await Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+			System.Diagnostics.Debug.WriteLine(Package == null ? "[OllamaAgent] Package is null" : "[OllamaAgent] Package is set");
+			if (Package != null)
+			{
+				Package.ShowOptionPage(typeof(OllamaAgent.VSIX.OllamaAgentOptionsPage));
+				System.Diagnostics.Debug.WriteLine("[OllamaAgent] ShowOptionPage called");
+			}
+			else
+			{
+				System.Diagnostics.Debug.WriteLine("[OllamaAgent] ShowOptionPage NOT called because Package is null");
+			}
+		});
 
 	public event PropertyChangedEventHandler PropertyChanged;
 	protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string name = null)
@@ -224,6 +268,7 @@ public class ViewModelBase : INotifyPropertyChanged
 
 	public void Dispose()
 	{
+		SaveSettings();
 		Dispose(true);
 		GC.SuppressFinalize(this);
 	}

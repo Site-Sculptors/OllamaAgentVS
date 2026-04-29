@@ -34,5 +34,17 @@ namespace OllamaAgent.VSIX.Properties {
 				this["ModelsDirectory"] = value;
 			}
 		}
+
+		[global::System.Configuration.UserScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute("")]
+		public string Endpoint {
+			get {
+				return ((string)(this["Endpoint"]));
+			}
+			set {
+				this["Endpoint"] = value;
+			}
+		}
 	}
 }

@@ -12,7 +12,22 @@ namespace OllamaAgent.VSIX
 		public OllamaAgentToolWindow() : base(null)
 		{
 			this.Caption = "Ollama Agent";
-			this.Content = new OllamaAgentToolWindowControl();
 		}
+
+		public override object Content
+		{
+			get
+			{
+				if (_content == null)
+				{
+					var package = (OllamaAgentVSIXPackage)this.Package;
+					_content = new OllamaAgentToolWindowControl(package);
+				}
+				return _content;
+			}
+			set { _content = value; }
+		}
+
+		private object _content;
 	}
 }

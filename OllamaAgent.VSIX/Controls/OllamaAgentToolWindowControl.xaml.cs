@@ -16,11 +16,11 @@ namespace OllamaAgent.VSIX.Controls
 
 		private readonly ChatViewModel _viewModel;
 
-		public OllamaAgentToolWindowControl()
+		public OllamaAgentToolWindowControl(OllamaAgentVSIXPackage package)
 		{
 			InitializeComponent();
 			var ollamaService = new OllamaAgent.VSIX.OllamaModelService();
-			_viewModel = new ChatViewModel(ollamaService);
+			_viewModel = new ChatViewModel(ollamaService, package);
 			DataContext = _viewModel;
 
 			// Auto-scroll to bottom when new messages arrive

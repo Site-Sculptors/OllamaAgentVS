@@ -45,7 +45,7 @@ namespace OllamaAgent.VSIX
 		private void ExecuteSettings(object sender, EventArgs e)
 		{
 			ThreadHelper.ThrowIfNotOnUIThread();
-			// later: open options window
+			_package.ShowOptionPage(typeof(OllamaAgentOptionsPage));
 		}
 
 		private void ExecuteRefreshModels(object sender, EventArgs e)
