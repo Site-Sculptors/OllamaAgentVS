@@ -188,25 +188,25 @@
                 Style="{StaticResource ToolbarIconButtonStyle}"
                 ToolTip="Settings" />
             <Button
-                x:Name="DeleteThreadButton"
+                x:Name="NewThreadButton"
                 Grid.Column="4"
                 Margin="5"
-                Command="{Binding DeleteThreadCommand}"
+                Command="{Binding NewThreadCommand}"
                 Content="&#xe901;"
                 FontFamily="{StaticResource IconMoon}"
                 FontSize="15"
                 Style="{StaticResource ToolbarIconButtonStyle}"
-                ToolTip="Delete Chat" />
+                ToolTip="New Chat" />
             <Button
-                x:Name="NewThreadButton"
+                x:Name="DeleteThreadButton"
                 Grid.Column="5"
                 Margin="5"
-                Command="{Binding NewThreadCommand}"
+                Command="{Binding DeleteThreadCommand}"
                 Content="&#xe900;"
                 FontFamily="{StaticResource IconMoon}"
                 FontSize="15"
                 Style="{StaticResource ToolbarIconButtonStyle}"
-                ToolTip="New Chat" />
+                ToolTip="Delete Chat" />
 
             <!--<Button
                 x:Name="LocalOllamaButton"
@@ -247,8 +247,8 @@
             x:Name="CurrentChat"
             Grid.Row="1"
             Margin="10"
-            Background="White"
-            BorderBrush="Gray"
+            Background="TransParent"
+            BorderThickness="0"
             ItemsSource="{Binding ChatHistory}"
             Visibility="{Binding IsHistoryVisible, Converter={StaticResource InverseBoolToVis}}">
             <ListBox.ItemTemplate>

@@ -17,6 +17,7 @@ namespace OllamaAgent.VSIX.Controls
 		private static readonly Guid ToolWindowText = new Guid("5c4976d7-3727-4b11-8c6c-2a1b8e1f1c5e");
 
 		private readonly ChatViewModel _viewModel;
+		private bool _autoScrollSubscribed = false;
 
 		public OllamaAgentToolWindowControl(OllamaAgentVSIXPackage package)
 		{
@@ -26,22 +27,64 @@ namespace OllamaAgent.VSIX.Controls
 			_viewModel = new ChatViewModel(ollamaService, package);
 			DataContext = _viewModel;
 
-			// Auto-scroll to bottom when new messages arrive
-			_viewModel.ChatHistory.CollectionChanged += (s, e) =>
+			// Only enable auto-scroll when server is online and at least one model is available
+			Loaded += (s, e) =>
 			{
-				if (CurrentChat != null && CurrentChat.Items.Count > 0)
+				this.Dispatcher.BeginInvoke(new Action(() =>
 				{
-					CurrentChat.ScrollIntoView(CurrentChat.Items[CurrentChat.Items.Count - 1]);
-				}
-			};
+					void TryEnableAutoScroll()
+					{
+						if (_viewModel.Status == OllamaAgent.VSIX.Enums.ServerStatus.Online && _viewModel.Models != null && _viewModel.Models.Count > 0)
+						{
+							var chatList = CurrentChat ?? (FindName("CurrentChat") as ListBox);
+							if (chatList == null)
+							{
+								System.Diagnostics.Debug.WriteLine("[OllamaAgent] CurrentChat is still null after loading!");
+								return;
+							}
+							// Only subscribe once
+							if (!_autoScrollSubscribed)
+							{
+								_autoScrollSubscribed = true;
+								_viewModel.ChatHistory.CollectionChanged += (s2, e2) =>
+								{
+									try
+									{
+										if (chatList?.Items != null && chatList.Items.Count > 0)
+										{
+											var lastItem = chatList.Items[chatList.Items.Count - 1];
+											if (lastItem != null)
+												chatList.ScrollIntoView(lastItem);
+										}
+									}
+									catch (Exception ex)
+									{
+										System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Exception in auto-scroll: {ex.Message}");
+									}
+								};
+							}
+						}
+					}
 
-			// Set theme and load models after controls are loaded
-			//Loaded += async (s, e) =>
-			//{
-			//	await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-			//	SetVsThemeColors();
-			//	await _viewModel.LoadModelsAsync();
-			//};
+					// Track if we've already subscribed
+					_autoScrollSubscribed = false;
+
+					// Listen for server status and models changes
+					_viewModel.PropertyChanged += (sender, args) =>
+					{
+						if (args.PropertyName == nameof(_viewModel.Status) || args.PropertyName == nameof(_viewModel.Models))
+						{
+							TryEnableAutoScroll();
+						}
+					};
+					if (_viewModel.Models != null)
+					{
+						_viewModel.Models.CollectionChanged += (sender, args) => TryEnableAutoScroll();
+					}
+					// Initial check
+					TryEnableAutoScroll();
+				}), System.Windows.Threading.DispatcherPriority.Loaded);
+			};
 		}
 
 		private void SetVsThemeColors()
