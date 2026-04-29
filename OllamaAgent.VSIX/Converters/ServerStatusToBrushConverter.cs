@@ -23,7 +23,7 @@ namespace OllamaAgent.VSIX.Converters
                     case ServerStatus.Offline:
                         return Brushes.Red;
                     case ServerStatus.Starting:
-                        return Brushes.Yellow;
+                        return Brushes.DarkOrange;
                     case ServerStatus.Unknown:
                     default:
                         return Brushes.Gray;

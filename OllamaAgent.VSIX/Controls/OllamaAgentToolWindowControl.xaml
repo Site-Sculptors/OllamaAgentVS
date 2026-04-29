@@ -16,8 +16,8 @@
             <Style x:Key="FauxButtonBorderStyle" TargetType="Border">
                 <Setter Property="CornerRadius" Value="5.0" />
                 <Setter Property="Padding" Value="3,0" />
-                <Setter Property="BorderThickness" Value="1.0" />
-                <Setter Property="BorderBrush" Value="Black" />
+                <Setter Property="BorderThickness" Value="0.0" />
+                <Setter Property="Background" Value="{DynamicResource {x:Static platformUI:EnvironmentColors.ToolWindowTextBrushKey}}" />
             </Style>
 
             <Style TargetType="Button">
@@ -44,11 +44,11 @@
             <Style x:Key="ToolbarIconButtonStyle" TargetType="Button">
                 <Setter Property="Foreground" Value="{DynamicResource {x:Static platformUI:EnvironmentColors.ToolWindowTextBrushKey}}" />
                 <Setter Property="Background" Value="Transparent" />
-                <Setter Property="Width" Value="24" />
-                <Setter Property="Height" Value="24" />
+                <Setter Property="MinHeight" Value="10" />
+                <Setter Property="VerticalAlignment" Value="Center" />
                 <Setter Property="BorderThickness" Value="0" />
                 <Setter Property="Padding" Value="0" />
-                <Setter Property="FontSize" Value="16" />
+                <Setter Property="FontSize" Value="14" />
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
@@ -132,6 +132,7 @@
             <Border
                 Grid.Column="0"
                 HorizontalAlignment="Left"
+                VerticalAlignment="Center"
                 Style="{StaticResource FauxButtonBorderStyle}">
                 <Grid VerticalAlignment="Center">
                     <Grid.ColumnDefinitions>
@@ -150,6 +151,7 @@
                         Height="20"
                         MinHeight="10"
                         Margin="2,0,0,0"
+                        Padding="0"
                         Background="Transparent"
                         BorderThickness="0"
                         Command="{Binding StartServerCommand}"
@@ -193,6 +195,7 @@
                 Command="{Binding DeleteThreadCommand}"
                 Content="&#xe901;"
                 FontFamily="{StaticResource IconMoon}"
+                FontSize="15"
                 Style="{StaticResource ToolbarIconButtonStyle}"
                 ToolTip="Delete Chat" />
             <Button
@@ -202,6 +205,7 @@
                 Command="{Binding NewThreadCommand}"
                 Content="&#xe900;"
                 FontFamily="{StaticResource IconMoon}"
+                FontSize="15"
                 Style="{StaticResource ToolbarIconButtonStyle}"
                 ToolTip="New Chat" />
 
