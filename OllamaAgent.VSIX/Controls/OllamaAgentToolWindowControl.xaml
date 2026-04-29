@@ -3,29 +3,115 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:converters="clr-namespace:OllamaAgent.VSIX.Converters"
+    xmlns:platformUI="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
     xmlns:viewModels="clr-namespace:OllamaAgent.VSIX.ViewModels">
+
     <UserControl.Resources>
-        <converters:ServerStatusToBrushConverter x:Key="ServerStatusToBrushConverter" />
-        <Style TargetType="Button">
-            <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border
-                            Padding="5,2"
-                            VerticalAlignment="Center"
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="3">
-                            <!--  Change this value as needed  -->
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/OllamaAgent.VSIX;component/Resources/FontResources.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <converters:ServerStatusToBrushConverter x:Key="ServerStatusToBrushConverter" />
+
+            <Style x:Key="FauxButtonBorderStyle" TargetType="Border">
+                <Setter Property="CornerRadius" Value="5.0" />
+                <Setter Property="Padding" Value="3,0" />
+                <Setter Property="BorderThickness" Value="1.0" />
+                <Setter Property="BorderBrush" Value="Black" />
+            </Style>
+
+            <Style TargetType="Button">
+                <Setter Property="Background" Value="{DynamicResource {x:Static platformUI:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
+                <Setter Property="Foreground" Value="{DynamicResource {x:Static platformUI:EnvironmentColors.ButtonTextBrushKey}}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource {x:Static platformUI:EnvironmentColors.ComboBoxBorderBrushKey}}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border
+                                Padding="5,2"
+                                VerticalAlignment="Center"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="3">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="ToolbarIconButtonStyle" TargetType="Button">
+                <Setter Property="Foreground" Value="{DynamicResource {x:Static platformUI:EnvironmentColors.ToolWindowTextBrushKey}}" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Width" Value="24" />
+                <Setter Property="Height" Value="24" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="FontSize" Value="16" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Grid Background="{TemplateBinding Background}">
+                                <TextBlock
+                                    x:Name="IconText"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    FontFamily="{TemplateBinding FontFamily}"
+                                    FontSize="{TemplateBinding FontSize}"
+                                    Foreground="{TemplateBinding Foreground}"
+                                    Text="{TemplateBinding Content}" />
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="IconText" Property="Foreground" Value="{DynamicResource {x:Static platformUI:EnvironmentColors.ToolWindowTextBrushKey}}" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="IconText" Property="Foreground" Value="{DynamicResource {x:Static platformUI:EnvironmentColors.ToolWindowTextBrushKey}}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="ToolbarCustomPathIconButtonStyle" TargetType="Button">
+                <Setter Property="Foreground" Value="{DynamicResource {x:Static platformUI:EnvironmentColors.ToolWindowTextBrushKey}}" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Width" Value="24" />
+                <Setter Property="Height" Value="24" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Grid Background="{TemplateBinding Background}">
+                                <Path
+                                    x:Name="CustomIconPath"
+                                    Width="{TemplateBinding Width}"
+                                    Height="{TemplateBinding Height}"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Data="{TemplateBinding Tag}"
+                                    Fill="{TemplateBinding Foreground}"
+                                    Stretch="Uniform" />
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="CustomIconPath" Property="Fill" Value="{DynamicResource {x:Static platformUI:EnvironmentColors.ToolWindowTextBrushKey}}" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="CustomIconPath" Property="Fill" Value="{DynamicResource {x:Static platformUI:EnvironmentColors.ToolWindowTextBrushKey}}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+        </ResourceDictionary>
     </UserControl.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -34,77 +120,174 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!--  Simple header  -->
-        <StackPanel
-            Grid.Row="0"
-            Margin="10"
-            Orientation="Horizontal">
-            <Ellipse
-                Width="8"
-                Height="8"
-                Fill="{Binding Status, Converter={StaticResource ServerStatusToBrushConverter}}" />
-            <Button
-                x:Name="StartServerButton"
-                Margin="5,0,20,0"
-                Background="Transparent"
-                Command="{Binding StartServerCommand}"
-                Content="{Binding Status}"
-                Foreground="{Binding Status, Converter={StaticResource ServerStatusToBrushConverter}}"
-                ToolTip="Click to start the Ollama server" />
+        <Grid Grid.Row="0" Margin="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Border
+                Grid.Column="0"
+                HorizontalAlignment="Left"
+                Style="{StaticResource FauxButtonBorderStyle}">
+                <Grid VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Ellipse
+                        Grid.Column="0"
+                        Width="8"
+                        Height="8"
+                        Margin="0"
+                        Fill="{Binding Status, Converter={StaticResource ServerStatusToBrushConverter}}" />
+                    <Button
+                        x:Name="StartServerButton"
+                        Grid.Column="1"
+                        Height="20"
+                        MinHeight="10"
+                        Margin="2,0,0,0"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Command="{Binding StartServerCommand}"
+                        Content="{Binding Status}"
+                        Foreground="{Binding Status, Converter={StaticResource ServerStatusToBrushConverter}}"
+                        ToolTip="Click to start the Ollama server" />
+                </Grid>
+            </Border>
             <Button
                 x:Name="ReloadButton"
+                Grid.Column="1"
                 Margin="5"
                 Command="{Binding ReloadCommand}"
-                Content="Reload" />
+                Content="&#xf2f9;"
+                FontFamily="{StaticResource FASolid}"
+                Style="{StaticResource ToolbarIconButtonStyle}"
+                ToolTip="Reload" />
+
+            <Button
+                x:Name="ChatHistoryButton"
+                Grid.Column="2"
+                Margin="5"
+                Command="{Binding ChatHistoryCommand}"
+                Content="&#xf017;"
+                FontFamily="{StaticResource FASolid}"
+                Style="{StaticResource ToolbarIconButtonStyle}"
+                ToolTip="Chat History" />
             <Button
                 x:Name="SettingsButton"
+                Grid.Column="3"
                 Margin="5"
                 Command="{Binding SettingsCommand}"
-                Content="Settings" />
+                Content="&#xf013;"
+                FontFamily="{StaticResource FASolid}"
+                Style="{StaticResource ToolbarIconButtonStyle}"
+                ToolTip="Settings" />
+            <Button
+                x:Name="DeleteThreadButton"
+                Grid.Column="4"
+                Margin="5"
+                Command="{Binding DeleteThreadCommand}"
+                Content="&#xe901;"
+                FontFamily="{StaticResource IconMoon}"
+                Style="{StaticResource ToolbarIconButtonStyle}"
+                ToolTip="Delete Chat" />
             <Button
                 x:Name="NewThreadButton"
+                Grid.Column="5"
                 Margin="5"
                 Command="{Binding NewThreadCommand}"
-                Content="New" />
-        </StackPanel>
+                Content="&#xe900;"
+                FontFamily="{StaticResource IconMoon}"
+                Style="{StaticResource ToolbarIconButtonStyle}"
+                ToolTip="New Chat" />
 
-        <!--  Chat display  -->
+            <!--<Button
+                x:Name="LocalOllamaButton"
+                Grid.Column="6"
+                Margin="5"
+                Command="{Binding ToggleLocalOllamaCommand}"
+                Style="{StaticResource ToolbarCustomPathIconButtonStyle}"
+                Tag="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
+                ToolTip="Toggle Local Ollama" />
+
+            <Button
+                x:Name="OllamaLogoButton"
+                Grid.Column="7"
+                Margin="5"
+                Command="{Binding OpenOllamaInfoCommand}"
+                Style="{StaticResource ToolbarCustomPathIconButtonStyle}"
+                Tag="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+                ToolTip="Ollama Information" />-->
+        </Grid>
+
         <ListBox
             x:Name="ChatHistory"
             Grid.Row="1"
             Margin="10"
+            Background="{DynamicResource {x:Static platformUI:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
+            BorderBrush="{DynamicResource {x:Static platformUI:EnvironmentColors.ToolWindowBorderBrushKey}}"
             ItemsSource="{Binding ChatHistory}">
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <TextBlock Text="{Binding Display}" TextWrapping="Wrap" />
+                    <TextBlock
+                        Foreground="{DynamicResource {x:Static platformUI:EnvironmentColors.ToolWindowTextBrushKey}}"
+                        Text="{Binding Display}"
+                        TextWrapping="Wrap" />
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
 
-        <!--  Simple input  -->
         <TextBox
             x:Name="InputBox"
             Grid.Row="2"
             MinHeight="60"
             Margin="10"
             AcceptsReturn="True"
+            Background="{DynamicResource {x:Static platformUI:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
+            BorderBrush="{DynamicResource {x:Static platformUI:EnvironmentColors.ToolWindowBorderBrushKey}}"
+            Foreground="{DynamicResource {x:Static platformUI:EnvironmentColors.ToolWindowTextBrushKey}}"
             Text="{Binding Input, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
             TextWrapping="Wrap" />
-        <StackPanel
-            Grid.Row="3"
-            Margin="10"
-            Orientation="Horizontal">
+
+        <Grid Grid.Row="3" Background="{DynamicResource {x:Static platformUI:EnvironmentColors.ToolWindowBackgroundBrushKey}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
             <ComboBox
                 x:Name="ModelSelector"
+                Grid.Column="0"
                 Width="120"
                 Margin="5"
+                HorizontalAlignment="Left"
+                Background="{DynamicResource {x:Static platformUI:EnvironmentColors.ComboBoxBackgroundBrushKey}}"
+                BorderBrush="{DynamicResource {x:Static platformUI:EnvironmentColors.ComboBoxBorderBrushKey}}"
+                Foreground="{DynamicResource {x:Static platformUI:EnvironmentColors.ComboBoxTextBrushKey}}"
                 ItemsSource="{Binding Models}"
                 SelectedItem="{Binding SelectedModel, Mode=TwoWay}" />
             <Button
-                Width="60"
+                Grid.Column="2"
+                Margin="5"
+                Command="{Binding ToolsCommand}"
+                Content="&#xf0ad;"
+                FontFamily="{StaticResource FASolid}"
+                Style="{StaticResource ToolbarIconButtonStyle}"
+                ToolTip="Tools" />
+            <Button
+                Grid.Column="3"
                 Margin="5"
                 Command="{Binding SendCommand}"
-                Content="Send" />
-        </StackPanel>
+                Content="&#xf1d8;"
+                FontFamily="{StaticResource FASolid}"
+                Foreground="{DynamicResource {x:Static platformUI:EnvironmentColors.FileTabSelectedTextBrushKey}}"
+                Style="{StaticResource ToolbarIconButtonStyle}"
+                ToolTip="Send" />
+        </Grid>
     </Grid>
 </UserControl>

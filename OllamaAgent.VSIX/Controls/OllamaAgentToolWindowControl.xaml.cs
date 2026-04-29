@@ -1,10 +1,12 @@
-﻿using System.Windows;
+﻿using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
+
+using OllamaAgent.VSIX.ViewModels;
+
+using System;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Shell.Interop;
-using System;
-using OllamaAgent.VSIX.ViewModels;
 
 namespace OllamaAgent.VSIX.Controls
 {
@@ -19,6 +21,7 @@ namespace OllamaAgent.VSIX.Controls
 		public OllamaAgentToolWindowControl(OllamaAgentVSIXPackage package)
 		{
 			InitializeComponent();
+
 			var ollamaService = new OllamaAgent.VSIX.OllamaModelService();
 			_viewModel = new ChatViewModel(ollamaService, package);
 			DataContext = _viewModel;

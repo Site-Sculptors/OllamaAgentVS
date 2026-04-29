@@ -1,0 +1,6 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <FontFamily x:Key="FASolid">pack://application:,,,/OllamaAgent.VSIX;component/Resources/Fonts/#Font Awesome 7 Free Solid</FontFamily>
+    <FontFamily x:Key="FARegular">pack://application:,,,/OllamaAgent.VSIX;component/Resources/Fonts/#Font Awesome 7 Free Regular</FontFamily>
+    <FontFamily x:Key="FABrands">pack://application:,,,/OllamaAgent.VSIX;component/Resources/Fonts/#Font Awesome 7 Brands Regular</FontFamily>
+    <FontFamily x:Key="IconMoon">pack://application:,,,/OllamaAgent.VSIX;component/Resources/Fonts/#icomoon</FontFamily>
+</ResourceDictionary>
