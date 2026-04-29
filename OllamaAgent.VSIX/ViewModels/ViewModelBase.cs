@@ -235,9 +235,9 @@ public class ViewModelBase : INotifyPropertyChanged
 		}
 	}
 
-	private IAsyncRelayCommand _settingsCommand;
-	public IAsyncRelayCommand SettingsCommand =>
-		_settingsCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
+	private AsyncRelayCommand _settingsCommand;
+	public AsyncRelayCommand SettingsCommand =>
+		_settingsCommand ??= new AsyncRelayCommand(async (parameter) =>
 		{
 			await Task.Yield();
 			await Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();

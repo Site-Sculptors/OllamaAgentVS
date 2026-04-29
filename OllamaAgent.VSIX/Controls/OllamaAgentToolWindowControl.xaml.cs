@@ -29,9 +29,9 @@ namespace OllamaAgent.VSIX.Controls
 			// Auto-scroll to bottom when new messages arrive
 			_viewModel.ChatHistory.CollectionChanged += (s, e) =>
 			{
-				if (ChatHistory != null && ChatHistory.Items.Count > 0)
+				if (CurrentChat != null && CurrentChat.Items.Count > 0)
 				{
-					ChatHistory.ScrollIntoView(ChatHistory.Items[ChatHistory.Items.Count - 1]);
+					CurrentChat.ScrollIntoView(CurrentChat.Items[CurrentChat.Items.Count - 1]);
 				}
 			};
 
@@ -58,16 +58,16 @@ namespace OllamaAgent.VSIX.Controls
 				Color fg = ColorFromUInt(fgColor);
 
 			this.Background = new SolidColorBrush(bg);
-			if (ChatHistory != null)
+			if (CurrentChat != null)
 			{
-				ChatHistory.Background = new SolidColorBrush(bg);
-				ChatHistory.Foreground = new SolidColorBrush(fg);
+				CurrentChat.Background = new SolidColorBrush(bg);
+				CurrentChat.Foreground = new SolidColorBrush(fg);
 				// Set ListBox item foregrounds (for chat messages)
-				var itemTemplate = ChatHistory.ItemTemplate;
+				var itemTemplate = CurrentChat.ItemTemplate;
 				if (itemTemplate != null)
 				{
-					ChatHistory.ItemContainerStyle = new System.Windows.Style(typeof(ListBoxItem));
-					ChatHistory.ItemContainerStyle.Setters.Add(new Setter(Control.ForegroundProperty, new SolidColorBrush(fg)));
+					CurrentChat.ItemContainerStyle = new System.Windows.Style(typeof(ListBoxItem));
+					CurrentChat.ItemContainerStyle.Setters.Add(new Setter(Control.ForegroundProperty, new SolidColorBrush(fg)));
 				}
 			}
 			if (ReloadButton != null)
