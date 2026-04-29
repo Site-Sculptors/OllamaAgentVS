@@ -23,8 +23,9 @@ namespace OllamaAgent.VSIX.Controls
 		{
 			InitializeComponent();
 
-			var ollamaService = new OllamaAgent.VSIX.OllamaModelService();
-			_viewModel = new ChatViewModel(ollamaService, package);
+			// Initialize the singleton ViewModelBase if not already done
+			ViewModelBase.InitializeSingleton(new OllamaAgent.VSIX.OllamaModelService(), package);
+			_viewModel = new ChatViewModel(ViewModelBase.Instance.OllamaService, ViewModelBase.Instance.Package);
 			DataContext = _viewModel;
 
 			// Only enable auto-scroll when server is online and at least one model is available

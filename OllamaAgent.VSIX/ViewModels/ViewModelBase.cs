@@ -23,11 +23,28 @@ using System.Windows.Input;
 
 public class ViewModelBase : INotifyPropertyChanged
 {
+	private static ViewModelBase _instance;
+	public static ViewModelBase Instance
+	{
+		get
+		{
+			if (_instance == null)
+				throw new InvalidOperationException("ViewModelBase.Instance has not been initialized. Call InitializeSingleton first.");
+			return _instance;
+		}
+	}
+
+	public static void InitializeSingleton(OllamaModelService ollamaModelService, OllamaAgentVSIXPackage package)
+	{
+		if (_instance == null)
+			_instance = new ViewModelBase(ollamaModelService, package);
+	}
+
 	public ObservableCollection<string> Models { get; } = new ObservableCollection<string>();
 	public event EventHandler<ServerStatus> StatusChanged;
 
 	public OllamaModelService OllamaService { get; }
-	protected OllamaAgentVSIXPackage Package { get; }
+	public OllamaAgentVSIXPackage Package { get; }
 	private readonly CancellationTokenSource _monitorCts = new CancellationTokenSource();
 
 	public ViewModelBase(OllamaModelService ollamaModelService, OllamaAgentVSIXPackage package)
@@ -43,6 +60,8 @@ public class ViewModelBase : INotifyPropertyChanged
 				_ = SafeLoadAsync();
 			}
 		};
+		if (_instance == null)
+			_instance = this;
 	}
 
 	private string _selectedModel;
@@ -194,14 +213,21 @@ public class ViewModelBase : INotifyPropertyChanged
 		try
 		{
 			var models = await OllamaService.GetModelsAsync(Endpoint);
-
-			System.Diagnostics.Debug.WriteLine(
-				models.Count > 0
-					? "Ollama connection OK"
-					: "Ollama reachable but no models returned");
+			if (models.Count > 0)
+			{
+				Status = ServerStatus.Online;
+				System.Diagnostics.Debug.WriteLine($"Ollama connection OK. {models.Count} model(s) found.");
+				await SafeLoadAsync();
+			}
+			else
+			{
+				Status = ServerStatus.Online;
+				System.Diagnostics.Debug.WriteLine("Ollama reachable but no models returned");
+			}
 		}
 		catch (Exception ex)
 		{
+			Status = ServerStatus.Offline;
 			System.Diagnostics.Debug.WriteLine($"Ollama connection failed: {ex.Message}");
 		}
 	});
