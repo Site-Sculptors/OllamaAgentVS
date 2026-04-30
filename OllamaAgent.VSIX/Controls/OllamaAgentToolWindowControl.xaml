@@ -209,7 +209,7 @@
                     Grid.Row="0"
                     Grid.Column="0"
                     Grid.ColumnSpan="4"
-                    MinHeight="60"
+                    MinHeight="60" 
                     Margin="10"
                     watermark:WatermarkService.Watermark="Chat with Ollama..."
                     watermark:WatermarkService.WatermarkFontSize="12"
@@ -219,7 +219,8 @@
                     FontSize="12"
                     Foreground="{DynamicResource ColorTextInput}"
                     Text="{Binding Input, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                    TextWrapping="Wrap" />
+                    TextWrapping="Wrap"
+                    PreviewKeyDown="InputBox_PreviewKeyDown"/>
 
                 <!--  Model Selector  -->
                 <ComboBox

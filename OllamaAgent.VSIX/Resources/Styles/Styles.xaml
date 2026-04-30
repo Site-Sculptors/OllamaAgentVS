@@ -26,7 +26,7 @@
 
     <Style TargetType="ComboBox">
         <Setter Property="Background" Value="{DynamicResource ColorBackgroundInput}" />
-        <Setter Property="Foreground" Value="{DynamicResource ColorTextInput}" />
+        <Setter Property="Foreground" Value="{DynamicResource ColorBackgroundInput}" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Padding" Value="4,2" />
     </Style>

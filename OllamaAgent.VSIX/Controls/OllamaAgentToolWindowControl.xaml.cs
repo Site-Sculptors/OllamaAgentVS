@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 
 namespace OllamaAgent.VSIX.Controls
@@ -145,6 +146,7 @@ namespace OllamaAgent.VSIX.Controls
 		}
 
 
+
 		//private async Task SetVsThemeColorsAsync()
 		//{
 		//	await Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
@@ -211,6 +213,42 @@ namespace OllamaAgent.VSIX.Controls
 		//	byte b = (byte)(color & 0xFF);
 		//	return Color.FromArgb(a, r, g, b);
 		//}
+
+		private void InputBox_PreviewKeyDown(object sender, KeyEventArgs e)
+		{
+			if (e.Key == System.Windows.Input.Key.Enter)
+			{
+				// If Shift is held, insert a new line
+				if ((System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Shift) == System.Windows.Input.ModifierKeys.Shift)
+				{
+					var textBox = sender as TextBox;
+					if (textBox != null)
+					{
+						// Insert a new line at the caret position
+						int caret = textBox.CaretIndex;
+						textBox.Text = textBox.Text.Insert(caret, System.Environment.NewLine);
+						textBox.CaretIndex = caret + System.Environment.NewLine.Length;
+					}
+					e.Handled = true;
+				}
+				else
+				{
+					// Enter without Shift: send
+					var vm = DataContext as OllamaAgent.VSIX.ViewModels.ChatViewModel;
+					if (vm != null && vm.SendCommand.CanExecute(null))
+					{
+						vm.SendCommand.Execute(null);
+						// Move focus back to input box after sending
+						var textBox = sender as TextBox;
+						if (textBox != null)
+						{
+							textBox.Focus();
+						}
+					}
+					e.Handled = true;
+				}
+			}
+		}
 
 		// All button logic is now handled via MVVM ICommand bindings in the ViewModel.
 	}
