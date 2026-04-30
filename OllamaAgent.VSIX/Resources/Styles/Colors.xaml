@@ -1,0 +1,45 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vsui="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0">
+
+    <!--  ===== BASE THEME COLORS (mapped to VS theme) =====  -->
+
+    <!--  Background Colors  -->
+    <SolidColorBrush x:Key="ColorBackgroundPrimary" Color="{DynamicResource {x:Static vsui:EnvironmentColors.ToolWindowBackgroundColorKey}}" />
+
+    <SolidColorBrush x:Key="ColorBackgroundSecondary" Color="{DynamicResource {x:Static vsui:EnvironmentColors.CommandBarGradientBeginColorKey}}" />
+
+    <SolidColorBrush x:Key="ColorBackgroundInput" Color="#FFF" />
+
+    <!--  Text Colors  -->
+    <SolidColorBrush x:Key="ColorTextPrimary" Color="{DynamicResource {x:Static vsui:EnvironmentColors.ToolWindowTextColorKey}}" />
+
+    <SolidColorBrush x:Key="ColorTextSecondary" Color="{DynamicResource {x:Static vsui:EnvironmentColors.CommandBarTextInactiveColorKey}}" />
+
+    <SolidColorBrush x:Key="ColorTextInput" Color="{DynamicResource {x:Static vsui:EnvironmentColors.ToolWindowTextColorKey}}" />
+
+    <!--  Border Colors  -->
+    <SolidColorBrush x:Key="ColorBorderPrimary" Color="{DynamicResource {x:Static vsui:EnvironmentColors.CommandBarBorderColorKey}}" />
+
+    <SolidColorBrush x:Key="ColorBorderInput" Color="#CCC" />
+
+    <!--  Button Specific  -->
+    <SolidColorBrush x:Key="ColorButtonBackground" Color="{DynamicResource {x:Static vsui:EnvironmentColors.CommandBarGradientBeginColorKey}}" />
+
+    <SolidColorBrush x:Key="ColorButtonText" Color="{DynamicResource {x:Static vsui:EnvironmentColors.CommandBarTextActiveColorKey}}" />
+
+    <SolidColorBrush x:Key="ColorButtonHoverBackground" Color="#DDD" />
+
+    <!--  Message Bubble Specific  -->
+    <SolidColorBrush x:Key="ColorUserMessageBackground" Color="{DynamicResource {x:Static vsui:EnvironmentColors.CommandBarGradientBeginColorKey}}" />
+
+    <SolidColorBrush x:Key="ColorAIMessageBackground" Color="{DynamicResource {x:Static vsui:EnvironmentColors.ToolWindowBackgroundColorKey}}" />
+
+    <!--  Status Colors (these can be theme-aware or hardcoded)  -->
+    <SolidColorBrush x:Key="ColorStatusSuccess" Color="#4CAF50" />
+    <SolidColorBrush x:Key="ColorStatusWarning" Color="#FFC107" />
+    <SolidColorBrush x:Key="ColorStatusError" Color="#F44336" />
+    <SolidColorBrush x:Key="ColorStatusOffline" Color="#9E9E9E" />
+
+</ResourceDictionary>

@@ -7,7 +7,7 @@
     <UserControl.Resources>
         <converters:ServerStatusToBrushConverter x:Key="ServerStatusToBrushConverter" />
         <Style TargetType="Button">
-            <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" />
+            <Setter Property="Background" Value="{DynamicResource ToolWindowButtonBackground}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">

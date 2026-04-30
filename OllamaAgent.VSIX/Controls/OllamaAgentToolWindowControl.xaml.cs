@@ -1,14 +1,15 @@
-﻿using Microsoft.VisualStudio.Shell;
+﻿using Microsoft.VisualStudio.PlatformUI;
+using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 
 using OllamaAgent.VSIX.ViewModels;
 
 using System;
 using System.Threading.Tasks;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using System.Threading.Tasks;
 
 namespace OllamaAgent.VSIX.Controls
 {
@@ -24,6 +25,10 @@ namespace OllamaAgent.VSIX.Controls
 		public OllamaAgentToolWindowControl(OllamaAgentVSIXPackage package)
 		{
 			InitializeComponent();
+
+		//	SetChatWindowColors();
+
+
 
 			// Initialize the singleton ViewModelBase if not already done
 			ViewModelBase.InitializeSingleton(new OllamaAgent.VSIX.OllamaModelService(), package);
@@ -48,6 +53,14 @@ namespace OllamaAgent.VSIX.Controls
 			};
 
 		}
+
+		//private void SetChatWindowColors()
+		//{
+		//	var themeColor = VSColorTheme.GetThemedColor(EnvironmentColors.ToolWindowBackgroundColorKey);
+		//	var wpfColor = Color.FromArgb(themeColor.A, themeColor.R, themeColor.G, themeColor.B);
+		//	var brush = (SolidColorBrush)Application.Current.Resources["ChatWindowBackgroundBrush"];
+		//	brush.Color = wpfColor;
+		//}
 
 		private async Task InitializeAsync()
 		{
