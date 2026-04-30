@@ -343,18 +343,17 @@ private async Task StartServerMonitorAsync(CancellationToken token)
 	{
 		if (!AgentEnabled)
 		{
+			await Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 			Models.Clear();
 			return;
 		}
 		try
 		{
-			Models.Clear();
-
 			var models = await OllamaService.GetModelsAsync(OllamaEndpoint);
-
+			await Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+			Models.Clear();
 			foreach (var m in models)
 				Models.Add(m);
-
 			if (Models.Count > 0 &&
 				(string.IsNullOrWhiteSpace(SelectedModel) || !Models.Contains(SelectedModel)))
 			{

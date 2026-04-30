@@ -34,6 +34,19 @@ namespace OllamaAgent.VSIX.Controls
 				_ = InitializeAsync();
 			};
 
+			// Ensure models are always loaded when the chat window is activated or gains focus
+			this.IsVisibleChanged += (s, e) =>
+			{
+				if (this.IsVisible)
+				{
+					_ = ViewModelBase.Instance.SafeLoadAsync();
+				}
+			};
+			this.GotFocus += (s, e) =>
+			{
+				_ = ViewModelBase.Instance.SafeLoadAsync();
+			};
+
 		}
 
 		private async Task InitializeAsync()
