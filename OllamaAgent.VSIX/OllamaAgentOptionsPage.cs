@@ -31,9 +31,10 @@ namespace OllamaAgent.VSIX
 		{
 			base.OnActivate(e);
 
-			if (ViewModel != null)
+			if (ViewModelBase.Instance != null)
 			{
-				_ = ViewModel.SafeLoadAsync(); // fire-and-forget, exceptions are handled internally
+				ViewModelBase.Instance.LoadSettings();
+				_ = ViewModelBase.Instance.SafeLoadAsync(); // fire-and-forget, exceptions are handled internally
 			}
 		}
 	}

@@ -84,6 +84,12 @@ public class ViewModelBase : INotifyPropertyChanged
 		var persistedEndpoint = OllamaAgent.VSIX.Properties.Settings.Default.Endpoint;
 		OllamaEndpoint = string.IsNullOrWhiteSpace(persistedEndpoint) ? "http://localhost:11434" : persistedEndpoint;
 		_agentEnabled = OllamaAgent.VSIX.Properties.Settings.Default.EnableAgent;
+		var persistedModelsDirectory = OllamaAgent.VSIX.Properties.Settings.Default.ModelsDirectory;
+		if (!string.IsNullOrWhiteSpace(persistedModelsDirectory))
+		{
+			_modelsDirectory = persistedModelsDirectory;
+			OnPropertyChanged(nameof(ModelsDirectory));
+		}
 	}
 
 	public void SaveSettings()

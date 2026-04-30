@@ -25,17 +25,20 @@ namespace OllamaAgent.VSIX.Controls
 
 			// Initialize the singleton ViewModelBase if not already done
 			ViewModelBase.InitializeSingleton(new OllamaAgent.VSIX.OllamaModelService(), package);
-			_viewModel = new ChatViewModel(ViewModelBase.Instance.OllamaService, ViewModelBase.Instance.Package);
-			DataContext = _viewModel;
+			// Use the singleton instance for DataContext
+			DataContext = ViewModelBase.Instance;
 
 			// Only enable auto-scroll when server is online and at least one model is available
 			Loaded += (s, e) =>
 			{
-				this.Dispatcher.BeginInvoke(new Action(() =>
+				_ = this.Dispatcher.BeginInvoke(new Action(() =>
 				{
 					void TryEnableAutoScroll()
 					{
-						if (_viewModel.Status == OllamaAgent.VSIX.Enums.ServerStatus.Online && _viewModel.Models != null && _viewModel.Models.Count > 0)
+						// Defensive: check _viewModel and Models
+						if (_viewModel == null || _viewModel.Models == null)
+							return;
+						if (_viewModel.Status == OllamaAgent.VSIX.Enums.ServerStatus.Online && _viewModel.Models.Count > 0)
 						{
 							var chatList = CurrentChat ?? (FindName("CurrentChat") as ListBox);
 							if (chatList == null)
@@ -47,22 +50,25 @@ namespace OllamaAgent.VSIX.Controls
 							if (!_autoScrollSubscribed)
 							{
 								_autoScrollSubscribed = true;
-								_viewModel.ChatHistory.CollectionChanged += (s2, e2) =>
+								if (_viewModel.ChatHistory != null)
 								{
-									try
+									_viewModel.ChatHistory.CollectionChanged += (s2, e2) =>
 									{
-										if (chatList?.Items != null && chatList.Items.Count > 0)
+										try
 										{
-											var lastItem = chatList.Items[chatList.Items.Count - 1];
-											if (lastItem != null)
-												chatList.ScrollIntoView(lastItem);
+											if (chatList?.Items != null && chatList.Items.Count > 0)
+											{
+												var lastItem = chatList.Items[chatList.Items.Count - 1];
+												if (lastItem != null)
+													chatList.ScrollIntoView(lastItem);
+											}
 										}
-									}
-									catch (Exception ex)
-									{
-										System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Exception in auto-scroll: {ex.Message}");
-									}
-								};
+										catch (Exception ex)
+										{
+											System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Exception in auto-scroll: {ex.Message}");
+										}
+									};
+								}
 							}
 						}
 					}

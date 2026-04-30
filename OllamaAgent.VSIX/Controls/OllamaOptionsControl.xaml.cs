@@ -17,7 +17,8 @@ namespace OllamaAgent.VSIX.Controls
 				// You may need to pass the correct package instance here
 				ViewModelBase.InitializeSingleton(new OllamaAgent.VSIX.OllamaModelService(), (OllamaAgentVSIXPackage)Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(OllamaAgentVSIXPackage)));
 			}
-			DataContext = new OllamaAgent.VSIX.ViewModels.OllamaOptionsViewModel();
+			// Use the singleton instance for DataContext
+			DataContext = ViewModelBase.Instance;
 		}
 	}
 }
