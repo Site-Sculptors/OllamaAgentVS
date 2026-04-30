@@ -35,11 +35,11 @@ public class ViewModelBase : INotifyPropertyChanged
 		}
 	}
 
-	public static void InitializeSingleton(OllamaModelService ollamaModelService, OllamaAgentVSIXPackage package)
-	{
-		if (_instance == null)
-			_instance = new ViewModelBase(ollamaModelService, package);
-	}
+public static void InitializeSingleton(OllamaModelService ollamaModelService, OllamaAgentVSIXPackage package)
+{
+	if (_instance == null)
+		_instance = new ChatViewModel(ollamaModelService, package);
+}
 
 	public ObservableCollection<string> Models { get; } = new ObservableCollection<string>();
 	public event EventHandler<ServerStatus> StatusChanged;
@@ -82,7 +82,16 @@ public class ViewModelBase : INotifyPropertyChanged
 	public void LoadSettings()
 	{
 		var persistedEndpoint = OllamaAgent.VSIX.Properties.Settings.Default.Endpoint;
-		OllamaEndpoint = string.IsNullOrWhiteSpace(persistedEndpoint) ? "http://localhost:11434" : persistedEndpoint;
+		if (!string.IsNullOrWhiteSpace(persistedEndpoint))
+		{
+			_ollamaEndpoint = persistedEndpoint;
+			OnPropertyChanged(nameof(OllamaEndpoint));
+		}
+		else
+		{
+			_ollamaEndpoint = "http://localhost:11434";
+			OnPropertyChanged(nameof(OllamaEndpoint));
+		}
 		_agentEnabled = OllamaAgent.VSIX.Properties.Settings.Default.EnableAgent;
 		var persistedModelsDirectory = OllamaAgent.VSIX.Properties.Settings.Default.ModelsDirectory;
 		if (!string.IsNullOrWhiteSpace(persistedModelsDirectory))
@@ -199,19 +208,31 @@ public class ViewModelBase : INotifyPropertyChanged
 		}
 	}
 
-	private async Task StartServerMonitorAsync(CancellationToken token)
+private async Task StartServerMonitorAsync(CancellationToken token)
+{
+	// Aggressive polling: every 2s for up to 30s or until online
+	using (var aggressiveCts = CancellationTokenSource.CreateLinkedTokenSource(token))
 	{
-		while (!token.IsCancellationRequested)
+		aggressiveCts.CancelAfter(TimeSpan.FromSeconds(30));
+		while (!aggressiveCts.Token.IsCancellationRequested && !token.IsCancellationRequested)
 		{
-			await CheckOllamaOnlineAsync(token);
-
-			for (int i = 0; i < 30; i++)
-			{
-				if (token.IsCancellationRequested) return;
-				await Task.Delay(1000, token); // 30 seconds total
-			}
+			await CheckOllamaOnlineAsync(aggressiveCts.Token);
+			if (Status == ServerStatus.Online)
+				break;
+			await Task.Delay(2000, aggressiveCts.Token);
 		}
 	}
+	// Normal polling: every 30s
+	while (!token.IsCancellationRequested)
+	{
+		await CheckOllamaOnlineAsync(token);
+		for (int i = 0; i < 30; i++)
+		{
+			if (token.IsCancellationRequested) return;
+			await Task.Delay(1000, token);
+		}
+	}
+}
 
 	private IAsyncRelayCommand _startServerCommand;
 	public IAsyncRelayCommand StartServerCommand =>

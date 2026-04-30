@@ -4,9 +4,11 @@ using Microsoft.VisualStudio.Shell.Interop;
 using OllamaAgent.VSIX.ViewModels;
 
 using System;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Threading.Tasks;
 
 namespace OllamaAgent.VSIX.Controls
 {
@@ -25,20 +27,33 @@ namespace OllamaAgent.VSIX.Controls
 
 			// Initialize the singleton ViewModelBase if not already done
 			ViewModelBase.InitializeSingleton(new OllamaAgent.VSIX.OllamaModelService(), package);
-			// Use the singleton instance for DataContext
 			DataContext = ViewModelBase.Instance;
 
-			// Only enable auto-scroll when server is online and at least one model is available
 			Loaded += (s, e) =>
 			{
-				_ = this.Dispatcher.BeginInvoke(new Action(() =>
+				_ = InitializeAsync();
+			};
+
+		}
+
+		private async Task InitializeAsync()
+		{
+			try
+			{
+				if (ViewModelBase.Instance != null)
+				{
+					await ViewModelBase.Instance.SafeLoadAsync();
+				}
+
+				await this.Dispatcher.BeginInvoke(new Action(() =>
 				{
 					void TryEnableAutoScroll()
 					{
 						// Defensive: check _viewModel and Models
-						if (_viewModel == null || _viewModel.Models == null)
+						var vm = ViewModelBase.Instance as ChatViewModel;
+						if (vm == null || vm.Models == null)
 							return;
-						if (_viewModel.Status == OllamaAgent.VSIX.Enums.ServerStatus.Online && _viewModel.Models.Count > 0)
+						if (vm.Status == OllamaAgent.VSIX.Enums.ServerStatus.Online && vm.Models.Count > 0)
 						{
 							var chatList = CurrentChat ?? (FindName("CurrentChat") as ListBox);
 							if (chatList == null)
@@ -50,9 +65,9 @@ namespace OllamaAgent.VSIX.Controls
 							if (!_autoScrollSubscribed)
 							{
 								_autoScrollSubscribed = true;
-								if (_viewModel.ChatHistory != null)
+								if (vm.ChatHistory != null)
 								{
-									_viewModel.ChatHistory.CollectionChanged += (s2, e2) =>
+									vm.ChatHistory.CollectionChanged += (s2, e2) =>
 									{
 										try
 										{
@@ -77,26 +92,37 @@ namespace OllamaAgent.VSIX.Controls
 					_autoScrollSubscribed = false;
 
 					// Listen for server status and models changes
-					_viewModel.PropertyChanged += (sender, args) =>
+					var vm2 = ViewModelBase.Instance as ChatViewModel;
+					if (vm2 != null)
 					{
-						if (args.PropertyName == nameof(_viewModel.Status) || args.PropertyName == nameof(_viewModel.Models))
+						vm2.PropertyChanged += (sender, args) =>
 						{
-							TryEnableAutoScroll();
+							if (args.PropertyName == nameof(vm2.Status) || args.PropertyName == nameof(vm2.Models))
+							{
+								TryEnableAutoScroll();
+							}
+						};
+						if (vm2.Models != null)
+						{
+							vm2.Models.CollectionChanged += (sender, args) => TryEnableAutoScroll();
 						}
-					};
-					if (_viewModel.Models != null)
-					{
-						_viewModel.Models.CollectionChanged += (sender, args) => TryEnableAutoScroll();
 					}
 					// Initial check
 					TryEnableAutoScroll();
 				}), System.Windows.Threading.DispatcherPriority.Loaded);
-			};
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Exception in InitializeAsync: {ex}");
+			}
+			return;
 		}
 
-		private void SetVsThemeColors()
+		private async Task SetVsThemeColorsAsync()
 		{
+			await Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 			var vsUIShell = ServiceProvider.GlobalProvider.GetService(typeof(SVsUIShell)) as IVsUIShell5;
+
 			if (vsUIShell != null)
 			{
 				Guid bgGuid = ToolWindowBackground;
@@ -107,45 +133,46 @@ namespace OllamaAgent.VSIX.Controls
 				Color bg = ColorFromUInt(bgColor);
 				Color fg = ColorFromUInt(fgColor);
 
-			this.Background = new SolidColorBrush(bg);
-			if (CurrentChat != null)
-			{
-				CurrentChat.Background = new SolidColorBrush(bg);
-				CurrentChat.Foreground = new SolidColorBrush(fg);
-				// Set ListBox item foregrounds (for chat messages)
-				var itemTemplate = CurrentChat.ItemTemplate;
-				if (itemTemplate != null)
+				this.Background = new SolidColorBrush(bg);
+				if (CurrentChat != null)
 				{
-					CurrentChat.ItemContainerStyle = new System.Windows.Style(typeof(ListBoxItem));
-					CurrentChat.ItemContainerStyle.Setters.Add(new Setter(Control.ForegroundProperty, new SolidColorBrush(fg)));
+					CurrentChat.Background = new SolidColorBrush(bg);
+					CurrentChat.Foreground = new SolidColorBrush(fg);
+					// Set ListBox item foregrounds (for chat messages)
+					var itemTemplate = CurrentChat.ItemTemplate;
+					if (itemTemplate != null)
+					{
+						CurrentChat.ItemContainerStyle = new System.Windows.Style(typeof(ListBoxItem));
+						CurrentChat.ItemContainerStyle.Setters.Add(new Setter(Control.ForegroundProperty, new SolidColorBrush(fg)));
+					}
+				}
+				if (ReloadButton != null)
+				{
+					ReloadButton.Background = new SolidColorBrush(bg);
+					ReloadButton.Foreground = new SolidColorBrush(fg);
+				}
+				if (SettingsButton != null)
+				{
+					SettingsButton.Background = new SolidColorBrush(bg);
+					SettingsButton.Foreground = new SolidColorBrush(fg);
+				}
+				if (NewThreadButton != null)
+				{
+					NewThreadButton.Background = new SolidColorBrush(bg);
+					NewThreadButton.Foreground = new SolidColorBrush(fg);
+				}
+				if (InputBox != null)
+				{
+					InputBox.Background = new SolidColorBrush(bg);
+					InputBox.Foreground = new SolidColorBrush(fg);
+				}
+				if (ModelSelector != null)
+				{
+					ModelSelector.Background = new SolidColorBrush(bg);
+					ModelSelector.Foreground = new SolidColorBrush(fg);
 				}
 			}
-			if (ReloadButton != null)
-			{
-				ReloadButton.Background = new SolidColorBrush(bg);
-				ReloadButton.Foreground = new SolidColorBrush(fg);
-			}
-			if (SettingsButton != null)
-			{
-				SettingsButton.Background = new SolidColorBrush(bg);
-				SettingsButton.Foreground = new SolidColorBrush(fg);
-			}
-			if (NewThreadButton != null)
-			{
-				NewThreadButton.Background = new SolidColorBrush(bg);
-				NewThreadButton.Foreground = new SolidColorBrush(fg);
-			}
-			if (InputBox != null)
-			{
-				InputBox.Background = new SolidColorBrush(bg);
-				InputBox.Foreground = new SolidColorBrush(fg);
-			}
-			if (ModelSelector != null)
-			{
-				ModelSelector.Background = new SolidColorBrush(bg);
-				ModelSelector.Foreground = new SolidColorBrush(fg);
-			}
-			}
+			return;
 		}
 
 		private static Color ColorFromUInt(uint color)
