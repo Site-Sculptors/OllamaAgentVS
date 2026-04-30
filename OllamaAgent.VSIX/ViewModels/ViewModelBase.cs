@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 namespace OllamaAgent.VSIX.ViewModels;
 
 using OllamaAgent.VSIX.Enums;
+using OllamaAgent.VSIX.Properties;
 
 using System.Collections.ObjectModel;
 using System.Net;
@@ -77,16 +78,36 @@ public class ViewModelBase : INotifyPropertyChanged
 		}
 	}
 
+
 	public void LoadSettings()
 	{
 		var persistedEndpoint = OllamaAgent.VSIX.Properties.Settings.Default.Endpoint;
 		OllamaEndpoint = string.IsNullOrWhiteSpace(persistedEndpoint) ? "http://localhost:11434" : persistedEndpoint;
+		_agentEnabled = OllamaAgent.VSIX.Properties.Settings.Default.EnableAgent;
 	}
 
 	public void SaveSettings()
 	{
 		OllamaAgent.VSIX.Properties.Settings.Default.Endpoint = OllamaEndpoint;
+		OllamaAgent.VSIX.Properties.Settings.Default.EnableAgent = AgentEnabled;
 		OllamaAgent.VSIX.Properties.Settings.Default.Save();
+	}
+
+	private bool _agentEnabled = true;
+	public bool AgentEnabled
+	{
+		get => _agentEnabled;
+		set
+		{
+			if (_agentEnabled != value)
+			{
+				_agentEnabled = value;
+				OnPropertyChanged();
+				// Persist immediately
+				OllamaAgent.VSIX.Properties.Settings.Default.EnableAgent = value;
+				OllamaAgent.VSIX.Properties.Settings.Default.Save();
+			}
+		}
 	}
 
 	private ServerStatus _status;
@@ -121,6 +142,25 @@ public class ViewModelBase : INotifyPropertyChanged
 			{
 				_ollamaEndpoint = value;
 				OnPropertyChanged(nameof(OllamaEndpoint));
+			}
+		}
+	}
+
+	private string _modelsDirectory;
+	public string ModelsDirectory
+	{
+		get => _modelsDirectory;
+		set
+		{
+			if (_modelsDirectory != value)
+			{
+				_modelsDirectory = value;
+				OnPropertyChanged();
+				// Save to user settings
+				Settings.Default.ModelsDirectory = value;
+				Settings.Default.Save();
+				// Refresh models for all windows
+				_ = ViewModelBase.Instance.SafeLoadAsync();
 			}
 		}
 	}
@@ -171,6 +211,11 @@ public class ViewModelBase : INotifyPropertyChanged
 	public IAsyncRelayCommand StartServerCommand =>
 		_startServerCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
 		{
+			if (!AgentEnabled)
+			{
+				Status = ServerStatus.Offline;
+				return;
+			}
 			try
 			{
 				Status = ServerStatus.Starting;
@@ -190,51 +235,90 @@ public class ViewModelBase : INotifyPropertyChanged
 				}
 
 				System.Diagnostics.Process.Start(processStartInfo);
-				// Wait up to 5 seconds for server to start
-				await Task.Delay(5000);
-				await CheckOllamaOnlineAsync();
+
+				// Aggressive polling: every 2s for up to 30s or until online
+				const int maxTries = 15;
+				bool online = false;
+				for (int i = 0; i < maxTries; i++)
+				{
+					await Task.Delay(2000);
+					await CheckOllamaOnlineAsync();
+					if (Status == ServerStatus.Online)
+					{
+						online = true;
+						break;
+					}
+				}
+				if (!online)
+				{
+					Status = ServerStatus.Offline;
+					TestConnectionMessage = "Failed to start Ollama server: Timed out waiting for server to come online.";
+				}
+				// Resume normal polling
+				_ = StartServerMonitorAsync(_monitorCts.Token);
 			}
 			catch (Exception ex)
 			{
 				System.Diagnostics.Debug.WriteLine($"Failed to start Ollama server: {ex.Message}");
 				Status = ServerStatus.Offline;
 			}
-		});
+		},
+		(parameter) => AgentEnabled);
 
 	private IAsyncRelayCommand _testConnectionCommand;
 	public IAsyncRelayCommand TestConnectionCommand =>
 		_testConnectionCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
-	{
-		try
 		{
-			var models = await OllamaService.GetModelsAsync(OllamaEndpoint);
-			if (models.Count > 0)
+			if (!AgentEnabled)
 			{
-				TestConnectionMessage = $"Connection OK. {models.Count} model(s) found.";
-				Status = ServerStatus.Online;
-				await SafeLoadAsync();
+				TestConnectionMessage = "Agent is disabled.";
+				Status = ServerStatus.Offline;
+				return;
 			}
-			else
+			try
 			{
-				Status = ServerStatus.Online;
-				TestConnectionMessage = "Connection OK, but no models found.";
-				await ViewModelBase.Instance.SafeLoadAsync();
+				var models = await OllamaService.GetModelsAsync(OllamaEndpoint);
+				if (models.Count > 0)
+				{
+					TestConnectionMessage = $"Connection OK. {models.Count} model(s) found.";
+					Status = ServerStatus.Online;
+					await SafeLoadAsync();
+				}
+				else
+				{
+					Status = ServerStatus.Online;
+					TestConnectionMessage = "Connection OK, but no models found.";
+					await ViewModelBase.Instance.SafeLoadAsync();
+				}
 			}
-		}
-		catch (Exception ex)
-		{
-			Status = ServerStatus.Offline;
-			TestConnectionMessage = $"Connection failed: {ex.Message}";
-		}
-	});
+			catch (Exception ex)
+			{
+				Status = ServerStatus.Offline;
+				TestConnectionMessage = $"Connection failed: {ex.Message}";
+			}
+		},
+		(parameter) => AgentEnabled);
 
 	private IAsyncRelayCommand _refreshModelsCommand;
 	public IAsyncRelayCommand RefreshModelsCommand =>
-		_refreshModelsCommand ??= new AsyncRelayCommand<object>(async (parameter) => await SafeLoadAsync());
+		_refreshModelsCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
+		{
+			if (!AgentEnabled)
+			{
+				return;
+			}
+			await SafeLoadAsync();
+		},
+		(parameter) => AgentEnabled);
 
 
 	public async Task SafeLoadAsync()
 	{
+		if (!AgentEnabled)
+		{
+			Models.Clear();
+			return;
+		}
 		try
 		{
 			Models.Clear();

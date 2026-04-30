@@ -46,5 +46,17 @@ namespace OllamaAgent.VSIX.Properties {
 				this["Endpoint"] = value;
 			}
 		}
+		
+		[global::System.Configuration.UserScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute("True")]
+		public bool EnableAgent {
+			get {
+				return ((bool)(this["EnableAgent"]));
+			}
+			set {
+				this["EnableAgent"] = value;
+			}
+		}
 	}
 }

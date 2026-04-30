@@ -21,7 +21,7 @@ namespace OllamaAgent.VSIX.ViewModels
 	{
 		public ChatViewModel(OllamaAgent.VSIX.OllamaModelService ollamaModelService, OllamaAgentVSIXPackage package) : base(ollamaModelService, package)
 		{
-			Threads = new ObservableCollection<ChatThread>();
+			Threads = new ObservableCollection<ChatThread?>();
 			Threads.CollectionChanged += (s, e) => SaveThreads();
 			_ = LoadThreadsAsync();
 		}
@@ -58,10 +58,13 @@ namespace OllamaAgent.VSIX.ViewModels
 				{
 			   var json = await Task.Run(() => File.ReadAllText(file));
 					var threads = JsonConvert.DeserializeObject<ObservableCollection<ChatThread>>(json) ?? new ObservableCollection<ChatThread>();
+					
 					Threads.Clear();
+
 					foreach (var t in threads)
 						Threads.Add(t);
-					CurrentThread = Threads.Count > 0 ? Threads[0] : null;
+
+					CurrentThread = Threads?.Count > 0 ? Threads[0] : null;
 				}
 				catch { Threads.Clear(); CreateAndSwitchToNewThread(); }
 			}
@@ -95,10 +98,10 @@ namespace OllamaAgent.VSIX.ViewModels
 			}
 		}
 
-		public ObservableCollection<ChatThread> Threads { get; }
+		public ObservableCollection<ChatThread?>? Threads { get; }
 
-		private ChatThread _currentThread;
-		public ChatThread CurrentThread
+		private ChatThread? _currentThread;
+		public ChatThread? CurrentThread
 		{
 			get => _currentThread;
 			set
@@ -112,7 +115,8 @@ namespace OllamaAgent.VSIX.ViewModels
 			}
 		}
 
-		public ObservableCollection<ChatMessage> ChatHistory => CurrentThread?.Messages;
+	private static readonly ObservableCollection<ChatMessage> _emptyMessages = new ObservableCollection<ChatMessage>();
+	public ObservableCollection<ChatMessage> ChatHistory => CurrentThread?.Messages ?? _emptyMessages;
 
 
 		private bool _isHistoryVisible;
@@ -193,9 +197,5 @@ namespace OllamaAgent.VSIX.ViewModels
 			CurrentThread = thread;
 			SaveThreads();
 		}
-
-		public event PropertyChangedEventHandler PropertyChanged;
-		protected void OnPropertyChanged([CallerMemberName] string name = null)
-			=> PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 	}
 }

@@ -31,14 +31,10 @@ namespace OllamaAgent.VSIX
 		{
 			base.OnActivate(e);
 
-			ViewModel?.SafeLoadAsync();
-		}
-
-		protected override void OnApply(PageApplyEventArgs e)
-		{
-			base.OnApply(e);
-
-			ViewModel?.Save();
+			if (ViewModel != null)
+			{
+				_ = ViewModel.SafeLoadAsync(); // fire-and-forget, exceptions are handled internally
+			}
 		}
 	}
 }

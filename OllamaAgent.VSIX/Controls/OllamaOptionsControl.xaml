@@ -40,10 +40,11 @@
                 Command="{Binding StartServerCommand}"
                 Content="{Binding Status}"
                 Foreground="{Binding Status, Converter={StaticResource ServerStatusToBrushConverter}}"
-                ToolTip="Click to start the Ollama server" />
+                ToolTip="Click to start the Ollama server"
+                IsEnabled="{Binding AgentEnabled}" />
         </StackPanel>
         <TextBlock Text="Ollama Endpoint" />
-        <TextBox Text="{Binding Endpoint, UpdateSourceTrigger=PropertyChanged}" />
+        <TextBox Text="{Binding Endpoint, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding AgentEnabled}" />
 
         <!--  Models Directory Picker  -->
         <TextBlock Margin="0,8,0,0" VerticalAlignment="Center" Text="Models Directory:" />
@@ -59,14 +60,15 @@
                 Margin="8,0,0,0"
                 VerticalAlignment="Center"
                 Command="{Binding SelectModelsDirectoryCommand}"
-                Content="Browse..." />
+                Content="Browse..."
+                IsEnabled="{Binding AgentEnabled}" />
         </StackPanel>
 
         <StackPanel
             VerticalAlignment="Center"
             Orientation="Vertical">
             <TextBlock Margin="0,10,0,0" Text="Model" />
-            <ComboBox ItemsSource="{Binding Models}" SelectedItem="{Binding SelectedModel, Mode=TwoWay}" />
+            <ComboBox ItemsSource="{Binding Models}" SelectedItem="{Binding SelectedModel, Mode=TwoWay}" IsEnabled="{Binding AgentEnabled}" />
         </StackPanel>
         <TextBlock Margin="0,8,0,0" Foreground="DarkSlateGray" TextWrapping="Wrap" Text="{Binding TestConnectionMessage}" />
 
@@ -87,12 +89,14 @@
                 Grid.Column="1"
                 Margin="10,0"
                 Command="{Binding TestConnectionCommand}"
-                Content="Test Connection" />
+                Content="Test Connection"
+                IsEnabled="{Binding AgentEnabled}" />
 
             <Button
                 Grid.Column="2"
                 Command="{Binding RefreshModelsCommand}"
-                Content="Refresh Models" />
+                Content="Refresh Models"
+                IsEnabled="{Binding AgentEnabled}" />
 
         </Grid>
 
