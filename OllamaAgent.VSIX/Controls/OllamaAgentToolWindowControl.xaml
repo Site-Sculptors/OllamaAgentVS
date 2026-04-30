@@ -40,76 +40,7 @@
             <Style BasedOn="{StaticResource StyleButton}" TargetType="Button" />
 
             <!--  Toolbar icon button style (text-based icons like FontAwesome)  -->
-            <Style x:Key="ToolbarIconButtonStyle" TargetType="Button">
-                <Setter Property="Foreground" Value="{DynamicResource ColorTextPrimary}" />
-                <Setter Property="Background" Value="Transparent" />
-                <Setter Property="MinHeight" Value="10" />
-                <Setter Property="VerticalAlignment" Value="Center" />
-                <Setter Property="BorderThickness" Value="0" />
-                <Setter Property="Padding" Value="0" />
-                <Setter Property="FontSize" Value="14" />
-                <Setter Property="Cursor" Value="Hand" />
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="Button">
-                            <Grid Background="{TemplateBinding Background}">
-                                <TextBlock
-                                    x:Name="IconText"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
-                                    FontFamily="{TemplateBinding FontFamily}"
-                                    FontSize="{TemplateBinding FontSize}"
-                                    Foreground="{TemplateBinding Foreground}"
-                                    Text="{TemplateBinding Content}" />
-                            </Grid>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="IconText" Property="Foreground" Value="{DynamicResource ColorButtonHoverBackground}" />
-                                </Trigger>
-                                <Trigger Property="IsPressed" Value="True">
-                                    <Setter TargetName="IconText" Property="Foreground" Value="{DynamicResource ColorButtonHoverBackground}" />
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
 
-            <!--  Toolbar icon button style using Path data  -->
-            <Style x:Key="ToolbarCustomPathIconButtonStyle" TargetType="Button">
-                <Setter Property="Foreground" Value="{DynamicResource ColorTextPrimary}" />
-                <Setter Property="Background" Value="Transparent" />
-                <Setter Property="Width" Value="24" />
-                <Setter Property="Height" Value="24" />
-                <Setter Property="BorderThickness" Value="0" />
-                <Setter Property="Padding" Value="0" />
-                <Setter Property="Cursor" Value="Hand" />
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="Button">
-                            <Grid Background="{TemplateBinding Background}">
-                                <Path
-                                    x:Name="CustomIconPath"
-                                    Width="{TemplateBinding Width}"
-                                    Height="{TemplateBinding Height}"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
-                                    Data="{TemplateBinding Tag}"
-                                    Fill="{TemplateBinding Foreground}"
-                                    Stretch="Uniform" />
-                            </Grid>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="CustomIconPath" Property="Fill" Value="{DynamicResource ColorButtonHoverBackground}" />
-                                </Trigger>
-                                <Trigger Property="IsPressed" Value="True">
-                                    <Setter TargetName="CustomIconPath" Property="Fill" Value="{DynamicResource ColorButtonHoverBackground}" />
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -248,8 +179,8 @@
             BorderThickness="0"
             ItemTemplateSelector="{StaticResource ChatMessageTemplateSelector}"
             ItemsSource="{Binding ChatHistory}"
-            Visibility="{Binding IsHistoryVisible, Converter={StaticResource InverseBoolToVis}}"
-            ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+            Visibility="{Binding IsHistoryVisible, Converter={StaticResource InverseBoolToVis}}" />
 
         <!--  Input Area (Bottom)  -->
         <Border
@@ -292,7 +223,6 @@
 
                 <!--  Model Selector  -->
                 <ComboBox
-                    x:Name="ModelSelector"
                     Grid.Row="1"
                     Grid.Column="0"
                     Width="Auto"
@@ -301,8 +231,7 @@
                     HorizontalAlignment="Left"
                     IsEnabled="{Binding AgentEnabled}"
                     ItemsSource="{Binding Models}"
-                    SelectedItem="{Binding SelectedModel, Mode=TwoWay}"
-                    Style="{StaticResource StyleComboBox}" />
+                    SelectedItem="{Binding SelectedModel, Mode=TwoWay}" />
 
                 <!--  Action Buttons  -->
                 <Button
