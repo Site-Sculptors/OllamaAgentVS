@@ -11,4 +11,5 @@ public class ChatMessage
 	public string Sender { get; set; }
 	public string Message { get; set; }
 	public string Display => $"{Sender}: {Message}";
+	public bool IsUser => Sender == "User";
 }

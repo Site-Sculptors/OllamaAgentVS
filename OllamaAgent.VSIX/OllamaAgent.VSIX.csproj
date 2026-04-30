@@ -70,4 +70,7 @@
     <Resource Include="Resources\Images\IconImages\rotate-solid2.png" />
     <Resource Include="Resources\Images\IconImages\screwdriver-wrench-solid.png" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Templates\" />
+  </ItemGroup>
 </Project>

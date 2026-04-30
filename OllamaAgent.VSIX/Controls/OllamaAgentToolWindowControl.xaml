@@ -11,10 +11,17 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/OllamaAgent.VSIX;component/Resources/FontResources.xaml" />
+                <ResourceDictionary Source="/OllamaAgent.VSIX;component/Controls/Templates/UserMessageTemplate.xaml" />
+                <ResourceDictionary Source="/OllamaAgent.VSIX;component/Controls/Templates/AIMessageTemplate.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <converters:ServerStatusToBrushConverter x:Key="ServerStatusToBrushConverter" />
             <BooleanToVisibilityConverter x:Key="BoolToVis" />
             <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
+
+            <!-- Template selector for chat messages -->
+            <watermark:ChatMessageTemplateSelector x:Key="ChatMessageTemplateSelector"
+                                                  UserTemplate="{StaticResource UserMessageTemplate}"
+                                                  AITemplate="{StaticResource AIMessageTemplate}" />
 
             <Style x:Key="FauxButtonBorderStyle" TargetType="Border">
                 <Setter Property="CornerRadius" Value="5.0" />
@@ -248,19 +255,12 @@
             x:Name="CurrentChat"
             Grid.Row="1"
             Margin="10"
-            Background="TransParent"
+            Background="Transparent"
             BorderThickness="0"
             ItemsSource="{Binding ChatHistory}"
-            Visibility="{Binding IsHistoryVisible, Converter={StaticResource InverseBoolToVis}}">
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <TextBlock
-                        MaxWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ListBox}}"
-                        Foreground="{DynamicResource {x:Static platformUI:EnvironmentColors.ToolWindowTextBrushKey}}"
-                        Text="{Binding Display}"
-                        TextWrapping="Wrap" />
-                </DataTemplate>
-            </ListBox.ItemTemplate>
+            Visibility="{Binding IsHistoryVisible, Converter={StaticResource InverseBoolToVis}}"
+            HorizontalContentAlignment="Stretch"
+            ItemTemplateSelector="{StaticResource ChatMessageTemplateSelector}">
         </ListBox>
 
         <Border
