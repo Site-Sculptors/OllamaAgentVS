@@ -52,7 +52,9 @@ public class ViewModelBase : INotifyPropertyChanged
 		OllamaService = ollamaModelService;
 		Package = package;
 		LoadSettings();
-		StartServerMonitor(_monitorCts.Token);
+
+		_=StartServerMonitorAsync(_monitorCts.Token);
+
 		StatusChanged += (s, status) =>
 		{
 			if (status == ServerStatus.Online)
@@ -75,29 +77,15 @@ public class ViewModelBase : INotifyPropertyChanged
 		}
 	}
 
-	private string _endpoint = "http://localhost:11434";
-	public string Endpoint
-	{
-		get => _endpoint;
-		set
-		{
-			if (_endpoint != value)
-			{
-				_endpoint = value;
-				OnPropertyChanged();
-			}
-		}
-	}
-
 	public void LoadSettings()
 	{
 		var persistedEndpoint = OllamaAgent.VSIX.Properties.Settings.Default.Endpoint;
-		Endpoint = string.IsNullOrWhiteSpace(persistedEndpoint) ? "http://localhost:11434" : persistedEndpoint;
+		OllamaEndpoint = string.IsNullOrWhiteSpace(persistedEndpoint) ? "http://localhost:11434" : persistedEndpoint;
 	}
 
 	public void SaveSettings()
 	{
-		OllamaAgent.VSIX.Properties.Settings.Default.Endpoint = Endpoint;
+		OllamaAgent.VSIX.Properties.Settings.Default.Endpoint = OllamaEndpoint;
 		OllamaAgent.VSIX.Properties.Settings.Default.Save();
 	}
 
@@ -114,6 +102,13 @@ public class ViewModelBase : INotifyPropertyChanged
 				StatusChanged?.Invoke(this, _status);
 			}
 		}
+	}
+
+	private string _testConnectionMessage;
+	public string TestConnectionMessage
+	{
+		get => _testConnectionMessage;
+		set { _testConnectionMessage = value; OnPropertyChanged(); }
 	}
 
 	private string _ollamaEndpoint = "http://localhost:11434";
@@ -158,11 +153,12 @@ public class ViewModelBase : INotifyPropertyChanged
 		}
 	}
 
-	private async void StartServerMonitor(CancellationToken token)
+	private async Task StartServerMonitorAsync(CancellationToken token)
 	{
 		while (!token.IsCancellationRequested)
 		{
 			await CheckOllamaOnlineAsync(token);
+
 			for (int i = 0; i < 30; i++)
 			{
 				if (token.IsCancellationRequested) return;
@@ -205,30 +201,30 @@ public class ViewModelBase : INotifyPropertyChanged
 			}
 		});
 
-
 	private IAsyncRelayCommand _testConnectionCommand;
 	public IAsyncRelayCommand TestConnectionCommand =>
 		_testConnectionCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
 	{
 		try
 		{
-			var models = await OllamaService.GetModelsAsync(Endpoint);
+			var models = await OllamaService.GetModelsAsync(OllamaEndpoint);
 			if (models.Count > 0)
 			{
+				TestConnectionMessage = $"Connection OK. {models.Count} model(s) found.";
 				Status = ServerStatus.Online;
-				System.Diagnostics.Debug.WriteLine($"Ollama connection OK. {models.Count} model(s) found.");
 				await SafeLoadAsync();
 			}
 			else
 			{
 				Status = ServerStatus.Online;
-				System.Diagnostics.Debug.WriteLine("Ollama reachable but no models returned");
+				TestConnectionMessage = "Connection OK, but no models found.";
+				await ViewModelBase.Instance.SafeLoadAsync();
 			}
 		}
 		catch (Exception ex)
 		{
 			Status = ServerStatus.Offline;
-			System.Diagnostics.Debug.WriteLine($"Ollama connection failed: {ex.Message}");
+			TestConnectionMessage = $"Connection failed: {ex.Message}";
 		}
 	});
 
@@ -243,7 +239,7 @@ public class ViewModelBase : INotifyPropertyChanged
 		{
 			Models.Clear();
 
-			var models = await OllamaService.GetModelsAsync(Endpoint);
+			var models = await OllamaService.GetModelsAsync(OllamaEndpoint);
 
 			foreach (var m in models)
 				Models.Add(m);

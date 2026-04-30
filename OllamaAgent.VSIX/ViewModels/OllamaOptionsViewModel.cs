@@ -83,7 +83,7 @@ namespace OllamaAgent.VSIX.ViewModels
 		{
 			try
 			{
-				var models = await OllamaService.GetModelsAsync(Endpoint);
+				var models = await OllamaService.GetModelsAsync(OllamaEndpoint);
 				if (models.Count > 0)
 				{
 					TestConnectionMessage = $"Connection OK. {models.Count} model(s) found.";

@@ -170,7 +170,7 @@ namespace OllamaAgent.VSIX.ViewModels
 			CurrentThread.Messages.Add(new ChatMessage { Sender = "You", Message = userInput });
 			Input = string.Empty;
 
-			var response = await OllamaService.GenerateCompletionAsync(Endpoint, SelectedModel, userInput);
+			var response = await OllamaService.GenerateCompletionAsync(OllamaEndpoint, SelectedModel, userInput);
 			if (!string.IsNullOrWhiteSpace(response))
 			{
 				CurrentThread.Messages.Add(new ChatMessage { Sender = SelectedModel, Message = response });

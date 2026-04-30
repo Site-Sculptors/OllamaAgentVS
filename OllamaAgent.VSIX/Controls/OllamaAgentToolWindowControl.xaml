@@ -283,10 +283,11 @@
             <ComboBox
                 x:Name="ModelSelector"
                 Grid.Column="0"
-                Width="120"
+                Width="Auto"
+                MinWidth="200"
                 Margin="5"
                 HorizontalAlignment="Left"
-                Background="{DynamicResource {x:Static platformUI:EnvironmentColors.ComboBoxBackgroundBrushKey}}"
+                Background="Transparent"
                 BorderBrush="{DynamicResource {x:Static platformUI:EnvironmentColors.ComboBoxBorderBrushKey}}"
                 Foreground="{DynamicResource {x:Static platformUI:EnvironmentColors.ComboBoxTextBrushKey}}"
                 ItemsSource="{Binding Models}"
