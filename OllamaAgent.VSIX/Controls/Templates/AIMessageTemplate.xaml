@@ -1,16 +1,9 @@
-<DataTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
-    <Border
-        MaxWidth="400"
-        Margin="8,8,30,8"
-        Padding="8"
-        HorizontalAlignment="Left"
-        Background="#F5F5F5"
-        BorderBrush="#BDBDBD"
-        BorderThickness="1"
-        CornerRadius="8">
-        <TextBlock
-            Foreground="#333"
-            Text="{Binding Message}"
-            TextWrapping="Wrap" />
-    </Border>
-</DataTemplate>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" >
+  <DataTemplate
+      x:Key="AIMessageTemplate">
+    <TextBlock
+        Foreground="{DynamicResource ToolWindowText}"
+        Text="{Binding Message}" HorizontalAlignment="Left" MaxWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ListBox}}"
+        TextWrapping="Wrap" />
+  </DataTemplate>
+</ResourceDictionary>

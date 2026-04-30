@@ -1,5 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
+
+using OllamaAgent.VSIX.Enums;
 using OllamaAgent.VSIX.Models;
 
 namespace OllamaAgent.VSIX.Controls
@@ -15,7 +17,7 @@ namespace OllamaAgent.VSIX.Controls
 			if (message == null)
 				return base.SelectTemplate(item, container);
 
-			if (message.IsUser)
+			if (message.Role == ChatRole.User)
 				return UserTemplate;
 			else
 				return AITemplate;

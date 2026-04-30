@@ -14,6 +14,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
+using OllamaAgent.VSIX.Enums;
 
 namespace OllamaAgent.VSIX.ViewModels
 {
@@ -171,17 +172,17 @@ namespace OllamaAgent.VSIX.ViewModels
 			if (string.IsNullOrWhiteSpace(userInput) || string.IsNullOrWhiteSpace(SelectedModel) || CurrentThread == null)
 				return;
 
-			CurrentThread.Messages.Add(new ChatMessage { Sender = "You", Message = userInput });
+			CurrentThread.Messages.Add(new ChatMessage { Role = ChatRole.User, Message = userInput });
 			Input = string.Empty;
 
 			var response = await OllamaService.GenerateCompletionAsync(OllamaEndpoint, SelectedModel, userInput);
 			if (!string.IsNullOrWhiteSpace(response))
 			{
-				CurrentThread.Messages.Add(new ChatMessage { Sender = SelectedModel, Message = response });
+				CurrentThread.Messages.Add(new ChatMessage { Role = ChatRole.AI, Message = response });
 			}
 			else
 			{
-				CurrentThread.Messages.Add(new ChatMessage { Sender = "System", Message = "No response from model." });
+				CurrentThread.Messages.Add(new ChatMessage { Role = ChatRole.AI, Message = "No response from model." });
 			}
 			SaveThreads();
 		});

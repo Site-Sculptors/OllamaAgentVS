@@ -18,10 +18,11 @@
             <BooleanToVisibilityConverter x:Key="BoolToVis" />
             <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
 
-            <!-- Template selector for chat messages -->
-            <watermark:ChatMessageTemplateSelector x:Key="ChatMessageTemplateSelector"
-                                                  UserTemplate="{StaticResource UserMessageTemplate}"
-                                                  AITemplate="{StaticResource AIMessageTemplate}" />
+            <!--  Template selector for chat messages  -->
+            <watermark:ChatMessageTemplateSelector
+                x:Key="ChatMessageTemplateSelector"
+                AITemplate="{StaticResource AIMessageTemplate}"
+                UserTemplate="{StaticResource UserMessageTemplate}" />
 
             <Style x:Key="FauxButtonBorderStyle" TargetType="Border">
                 <Setter Property="CornerRadius" Value="5.0" />
@@ -239,14 +240,17 @@
             x:Name="ChatThreadsList"
             Grid.Row="1"
             Margin="10"
-            Background="White"
-            BorderBrush="Gray"
+            Background="{DynamicResource ToolWindowBackground}"
+            BorderBrush="{DynamicResource ToolWindowBorderBrush}">
             ItemsSource="{Binding Threads}"
             SelectedItem="{Binding CurrentThread, Mode=TwoWay}"
             Visibility="{Binding IsHistoryVisible, Converter={StaticResource BoolToVis}}">
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <TextBlock Foreground="Black" Text="{Binding Name}" />
+                    <TextBlock
+                        MaxWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                        Foreground="{DynamicResource ToolWindowText}"
+                        Text="{Binding Name}" />
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
@@ -254,14 +258,14 @@
         <ListBox
             x:Name="CurrentChat"
             Grid.Row="1"
+            MaxWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ListBox}}"
             Margin="10"
+            HorizontalContentAlignment="Stretch"
             Background="Transparent"
             BorderThickness="0"
+            ItemTemplateSelector="{StaticResource ChatMessageTemplateSelector}"
             ItemsSource="{Binding ChatHistory}"
-            Visibility="{Binding IsHistoryVisible, Converter={StaticResource InverseBoolToVis}}"
-            HorizontalContentAlignment="Stretch"
-            ItemTemplateSelector="{StaticResource ChatMessageTemplateSelector}">
-        </ListBox>
+            Visibility="{Binding IsHistoryVisible, Converter={StaticResource InverseBoolToVis}}" />
 
         <Border
             Grid.Row="3"
