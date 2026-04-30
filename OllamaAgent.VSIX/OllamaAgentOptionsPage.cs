@@ -1,9 +1,11 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
 using System.Windows;
 
 using Microsoft.VisualStudio.Shell;
 
 using OllamaAgent.VSIX.Controls;
+using OllamaAgent.VSIX.Services;
 using OllamaAgent.VSIX.ViewModels;
 
 namespace OllamaAgent.VSIX
@@ -20,7 +22,8 @@ namespace OllamaAgent.VSIX
 			{
 				if (_control == null)
 				{
-					_control = new OllamaOptionsControl();
+					var viewModel = (OllamaOptionsViewModel)Package.GetGlobalService(typeof(OllamaOptionsViewModel));
+					_control = new OllamaOptionsControl(viewModel);
 				}
 
 				return _control;
@@ -31,10 +34,10 @@ namespace OllamaAgent.VSIX
 		{
 			base.OnActivate(e);
 
-			if (ViewModelBase.Instance != null)
+			if (ViewModel != null)
 			{
-				ViewModelBase.Instance.LoadSettings();
-				_ = ViewModelBase.Instance.SafeLoadAsync(); // fire-and-forget, exceptions are handled internally
+				ViewModel.LoadSettings();
+				_ = ViewModel.SafeLoadAsync(); // fire-and-forget, exceptions are handled internally
 			}
 		}
 	}

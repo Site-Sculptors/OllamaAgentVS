@@ -5,9 +5,9 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OllamaAgent.VSIX
+namespace OllamaAgent.VSIX.Services
 {
-	public sealed class OllamaModelService
+	public sealed class OllamaModelService : IOllamaModelService
 	{
 		private static readonly HttpClient _httpClient = new HttpClient();
 

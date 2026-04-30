@@ -23,17 +23,12 @@ namespace OllamaAgent.VSIX.Controls
 		private readonly ChatViewModel _viewModel;
 		private bool _autoScrollSubscribed = false;
 
-		public OllamaAgentToolWindowControl(OllamaAgentVSIXPackage package)
+		public OllamaAgentToolWindowControl(ChatViewModel viewModel)
 		{
 			InitializeComponent();
 
-		//	SetChatWindowColors();
-
-
-
-			// Initialize the singleton ViewModelBase if not already done
-			ViewModelBase.InitializeSingleton(new OllamaAgent.VSIX.OllamaModelService(), package);
-			DataContext = ViewModelBase.Instance;
+			DataContext = viewModel;
+			_viewModel = viewModel;
 
 			Loaded += (s, e) =>
 			{
@@ -43,14 +38,17 @@ namespace OllamaAgent.VSIX.Controls
 			// Ensure models are always loaded when the chat window is activated or gains focus
 			this.IsVisibleChanged += (s, e) =>
 			{
-				if (this.IsVisible)
+				if (this.IsVisible && _viewModel != null)
 				{
-					_ = ViewModelBase.Instance.SafeLoadAsync();
+					_ = _viewModel.SafeLoadAsync();
 				}
 			};
 			this.GotFocus += (s, e) =>
 			{
-				_ = ViewModelBase.Instance.SafeLoadAsync();
+				if (_viewModel != null)
+				{
+					_ = _viewModel.SafeLoadAsync();
+				}
 			};
 
 		}
@@ -67,9 +65,9 @@ namespace OllamaAgent.VSIX.Controls
 		{
 			try
 			{
-				if (ViewModelBase.Instance != null)
+				if (_viewModel != null)
 				{
-					await ViewModelBase.Instance.SafeLoadAsync();
+					await _viewModel.SafeLoadAsync();
 				}
 
 				await this.Dispatcher.BeginInvoke(new Action(() =>
@@ -77,7 +75,7 @@ namespace OllamaAgent.VSIX.Controls
 					void TryEnableAutoScroll()
 					{
 						// Defensive: check _viewModel and Models
-						var vm = ViewModelBase.Instance as ChatViewModel;
+						var vm = _viewModel;
 						if (vm == null || vm.Models == null)
 							return;
 						if (vm.Status == OllamaAgent.VSIX.Enums.ServerStatus.Online && vm.Models.Count > 0)
@@ -119,7 +117,7 @@ namespace OllamaAgent.VSIX.Controls
 					_autoScrollSubscribed = false;
 
 					// Listen for server status and models changes
-					var vm2 = ViewModelBase.Instance as ChatViewModel;
+					var vm2 = _viewModel;
 					if (vm2 != null)
 					{
 						vm2.PropertyChanged += (sender, args) =>

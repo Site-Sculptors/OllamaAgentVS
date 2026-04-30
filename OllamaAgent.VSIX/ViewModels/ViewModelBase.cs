@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 
 using Microsoft.VisualStudio.Settings;
+using Microsoft.VisualStudio.Shell;
 
 using System;
 using System.Collections.Generic;
@@ -13,6 +14,7 @@ namespace OllamaAgent.VSIX.ViewModels;
 
 using OllamaAgent.VSIX.Enums;
 using OllamaAgent.VSIX.Properties;
+using OllamaAgent.VSIX.Services;
 
 using System.Collections.ObjectModel;
 using System.Net;
@@ -22,39 +24,27 @@ using System.Security.Cryptography;
 using System.Threading;
 using System.Windows.Input;
 
+
 public class ViewModelBase : INotifyPropertyChanged
 {
-	private static ViewModelBase _instance;
-	public static ViewModelBase Instance
-	{
-		get
-		{
-			if (_instance == null)
-				throw new InvalidOperationException("ViewModelBase.Instance has not been initialized. Call InitializeSingleton first.");
-			return _instance;
-		}
-	}
-
-public static void InitializeSingleton(OllamaModelService ollamaModelService, OllamaAgentVSIXPackage package)
-{
-	if (_instance == null)
-		_instance = new ChatViewModel(ollamaModelService, package);
-}
-
-	public ObservableCollection<string> Models { get; } = new ObservableCollection<string>();
+	public ObservableCollection<string> Models { get; }
 	public event EventHandler<ServerStatus> StatusChanged;
 
-	public OllamaModelService OllamaService { get; }
+	public IOllamaAgentService OllamaAgentService { get; }
+	public IOllamaModelService OllamaModelService { get; }
 	public OllamaAgentVSIXPackage Package { get; }
 	private readonly CancellationTokenSource _monitorCts = new CancellationTokenSource();
 
-	public ViewModelBase(OllamaModelService ollamaModelService, OllamaAgentVSIXPackage package)
+	public ViewModelBase(IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package)
 	{
-		OllamaService = ollamaModelService;
+		OllamaAgentService = ollamaAgentService;
+		OllamaModelService = ollamaModelService;
 		Package = package;
+
+		Models = new ObservableCollection<string>();
 		LoadSettings();
 
-		_=StartServerMonitorAsync(_monitorCts.Token);
+		_ = StartServerMonitorAsync(_monitorCts.Token);
 
 		StatusChanged += (s, status) =>
 		{
@@ -63,8 +53,6 @@ public static void InitializeSingleton(OllamaModelService ollamaModelService, Ol
 				_ = SafeLoadAsync();
 			}
 		};
-		if (_instance == null)
-			_instance = this;
 	}
 
 	private string _selectedModel;
@@ -175,7 +163,7 @@ public static void InitializeSingleton(OllamaModelService ollamaModelService, Ol
 				Settings.Default.ModelsDirectory = value;
 				Settings.Default.Save();
 				// Refresh models for all windows
-				_ = ViewModelBase.Instance.SafeLoadAsync();
+				_ = SafeLoadAsync();
 			}
 		}
 	}
@@ -208,31 +196,31 @@ public static void InitializeSingleton(OllamaModelService ollamaModelService, Ol
 		}
 	}
 
-private async Task StartServerMonitorAsync(CancellationToken token)
-{
-	// Aggressive polling: every 2s for up to 30s or until online
-	using (var aggressiveCts = CancellationTokenSource.CreateLinkedTokenSource(token))
+	private async Task StartServerMonitorAsync(CancellationToken token)
 	{
-		aggressiveCts.CancelAfter(TimeSpan.FromSeconds(30));
-		while (!aggressiveCts.Token.IsCancellationRequested && !token.IsCancellationRequested)
+		// Aggressive polling: every 2s for up to 30s or until online
+		using (var aggressiveCts = CancellationTokenSource.CreateLinkedTokenSource(token))
 		{
-			await CheckOllamaOnlineAsync(aggressiveCts.Token);
-			if (Status == ServerStatus.Online)
-				break;
-			await Task.Delay(2000, aggressiveCts.Token);
+			aggressiveCts.CancelAfter(TimeSpan.FromSeconds(30));
+			while (!aggressiveCts.Token.IsCancellationRequested && !token.IsCancellationRequested)
+			{
+				await CheckOllamaOnlineAsync(aggressiveCts.Token);
+				if (Status == ServerStatus.Online)
+					break;
+				await Task.Delay(2000, aggressiveCts.Token);
+			}
+		}
+		// Normal polling: every 30s
+		while (!token.IsCancellationRequested)
+		{
+			await CheckOllamaOnlineAsync(token);
+			for (int i = 0; i < 30; i++)
+			{
+				if (token.IsCancellationRequested) return;
+				await Task.Delay(1000, token);
+			}
 		}
 	}
-	// Normal polling: every 30s
-	while (!token.IsCancellationRequested)
-	{
-		await CheckOllamaOnlineAsync(token);
-		for (int i = 0; i < 30; i++)
-		{
-			if (token.IsCancellationRequested) return;
-			await Task.Delay(1000, token);
-		}
-	}
-}
 
 	private IAsyncRelayCommand _startServerCommand;
 	public IAsyncRelayCommand StartServerCommand =>
@@ -294,37 +282,37 @@ private async Task StartServerMonitorAsync(CancellationToken token)
 
 	private IAsyncRelayCommand _testConnectionCommand;
 	public IAsyncRelayCommand TestConnectionCommand =>
-		_testConnectionCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
-		{
-			if (!AgentEnabled)
-			{
-				TestConnectionMessage = "Agent is disabled.";
-				Status = ServerStatus.Offline;
-				return;
-			}
-			try
-			{
-				var models = await OllamaService.GetModelsAsync(OllamaEndpoint);
-				if (models.Count > 0)
-				{
-					TestConnectionMessage = $"Connection OK. {models.Count} model(s) found.";
-					Status = ServerStatus.Online;
-					await SafeLoadAsync();
-				}
-				else
-				{
-					Status = ServerStatus.Online;
-					TestConnectionMessage = "Connection OK, but no models found.";
-					await ViewModelBase.Instance.SafeLoadAsync();
-				}
-			}
-			catch (Exception ex)
-			{
-				Status = ServerStatus.Offline;
-				TestConnectionMessage = $"Connection failed: {ex.Message}";
-			}
-		},
-		(parameter) => AgentEnabled);
+	   _testConnectionCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
+	   {
+		   if (!AgentEnabled)
+		   {
+			   TestConnectionMessage = "Agent is disabled.";
+			   Status = ServerStatus.Offline;
+			   return;
+		   }
+		   try
+		   {
+			   var models = await OllamaModelService.GetModelsAsync(OllamaEndpoint);
+			   if (models.Count > 0)
+			   {
+				   TestConnectionMessage = $"Connection OK. {models.Count} model(s) found.";
+				   Status = ServerStatus.Online;
+				   await SafeLoadAsync();
+			   }
+			   else
+			   {
+				   Status = ServerStatus.Online;
+				   TestConnectionMessage = "Connection OK, but no models found.";
+				   await SafeLoadAsync();
+			   }
+		   }
+		   catch (Exception ex)
+		   {
+			   Status = ServerStatus.Offline;
+			   TestConnectionMessage = $"Connection failed: {ex.Message}";
+		   }
+	   },
+	   (parameter) => AgentEnabled);
 
 	private IAsyncRelayCommand _refreshModelsCommand;
 	public IAsyncRelayCommand RefreshModelsCommand =>
@@ -349,13 +337,22 @@ private async Task StartServerMonitorAsync(CancellationToken token)
 		}
 		try
 		{
-			var models = await OllamaService.GetModelsAsync(OllamaEndpoint);
+			if (OllamaModelService == null)
+			{
+				System.Diagnostics.Debug.WriteLine("OllamaModelService is null in SafeLoadAsync.");
+				return;
+			}
+			var models = await OllamaModelService.GetModelsAsync(OllamaEndpoint);
 			await Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+			var oldSelected = SelectedModel;
 			Models.Clear();
 			foreach (var m in models)
 				Models.Add(m);
-			if (Models.Count > 0 &&
-				(string.IsNullOrWhiteSpace(SelectedModel) || !Models.Contains(SelectedModel)))
+			if (!string.IsNullOrWhiteSpace(oldSelected) && Models.Contains(oldSelected))
+			{
+				SelectedModel = oldSelected;
+			}
+			else if (Models.Count > 0)
 			{
 				SelectedModel = Models[0];
 			}
@@ -374,15 +371,8 @@ private async Task StartServerMonitorAsync(CancellationToken token)
 			await Task.Yield();
 			await Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 			System.Diagnostics.Debug.WriteLine(Package == null ? "[OllamaAgent] Package is null" : "[OllamaAgent] Package is set");
-			if (Package != null)
-			{
-				Package.ShowOptionPage(typeof(OllamaAgent.VSIX.OllamaAgentOptionsPage));
-				System.Diagnostics.Debug.WriteLine("[OllamaAgent] ShowOptionPage called");
-			}
-			else
-			{
-				System.Diagnostics.Debug.WriteLine("[OllamaAgent] ShowOptionPage NOT called because Package is null");
-			}
+			VsShellUtilities.ShowToolsOptionsPage<OllamaAgentOptionsPage>();
+			System.Diagnostics.Debug.WriteLine("[OllamaAgent] ShowOptionPage called");
 		});
 
 	public event PropertyChangedEventHandler PropertyChanged;

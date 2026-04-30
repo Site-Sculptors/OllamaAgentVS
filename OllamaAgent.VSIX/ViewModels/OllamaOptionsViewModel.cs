@@ -7,16 +7,18 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Input;
+
 using OllamaAgent.VSIX.Properties;
+using OllamaAgent.VSIX.Services;
 
 namespace OllamaAgent.VSIX.ViewModels
 {
 	public class OllamaOptionsViewModel : ViewModelBase
 	{
-		// Parameterless constructor for XAML
-		public OllamaOptionsViewModel() : base(ViewModelBase.Instance.OllamaService, ViewModelBase.Instance.Package) { }
 
-		public OllamaOptionsViewModel(OllamaAgent.VSIX.OllamaModelService ollamaModelService, OllamaAgentVSIXPackage package) : base(ollamaModelService, package)
+
+		public OllamaOptionsViewModel(IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package)
+			: base(ollamaAgentService, ollamaModelService, package)
 		{
 			// Load from user settings
 			ModelsDirectory = Settings.Default.ModelsDirectory;

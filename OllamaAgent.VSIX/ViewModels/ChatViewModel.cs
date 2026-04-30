@@ -15,16 +15,22 @@ using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
 using OllamaAgent.VSIX.Enums;
+using OllamaAgent.VSIX.Services;
 
 namespace OllamaAgent.VSIX.ViewModels
 {
 	public class ChatViewModel : ViewModelBase
 	{
-		public ChatViewModel(OllamaAgent.VSIX.OllamaModelService ollamaModelService, OllamaAgentVSIXPackage package) : base(ollamaModelService, package)
+		private static readonly ObservableCollection<ChatMessage> _emptyMessages = new ObservableCollection<ChatMessage>();
+		private readonly IOllamaChatService _ollamaChatService;
+
+		public ChatViewModel(IOllamaChatService ollamaChatService, IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package)
+			: base(ollamaAgentService, ollamaModelService, package)
 		{
 			Threads = new ObservableCollection<ChatThread?>();
 			Threads.CollectionChanged += (s, e) => SaveThreads();
 			_ = LoadThreadsAsync();
+			_ollamaChatService = ollamaChatService;
 		}
 
 		private string GetSolutionPath()
@@ -116,8 +122,8 @@ namespace OllamaAgent.VSIX.ViewModels
 			}
 		}
 
-	private static readonly ObservableCollection<ChatMessage> _emptyMessages = new ObservableCollection<ChatMessage>();
-	public ObservableCollection<ChatMessage> ChatHistory => CurrentThread?.Messages ?? _emptyMessages;
+
+		public ObservableCollection<ChatMessage> ChatHistory => CurrentThread?.Messages ?? _emptyMessages;
 
 
 		private bool _isHistoryVisible;
@@ -175,7 +181,7 @@ namespace OllamaAgent.VSIX.ViewModels
 			CurrentThread.Messages.Add(new ChatMessage { Role = ChatRole.User, Message = userInput });
 			Input = string.Empty;
 
-			var response = await OllamaService.GenerateCompletionAsync(OllamaEndpoint, SelectedModel, userInput);
+			var response = await OllamaAgentService.GenerateCompletionAsync(OllamaEndpoint, SelectedModel, userInput);
 			if (!string.IsNullOrWhiteSpace(response))
 			{
 				CurrentThread.Messages.Add(new ChatMessage { Role = ChatRole.AI, Message = response });

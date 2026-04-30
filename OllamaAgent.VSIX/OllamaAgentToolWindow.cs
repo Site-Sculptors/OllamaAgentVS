@@ -2,6 +2,7 @@
 
 using OllamaAgent.VSIX.Controls;
 
+using System;
 using System.Runtime.InteropServices;
 
 namespace OllamaAgent.VSIX
@@ -20,8 +21,8 @@ namespace OllamaAgent.VSIX
 			{
 				if (_content == null)
 				{
-					var package = (OllamaAgentVSIXPackage)this.Package;
-					_content = new OllamaAgentToolWindowControl(package);
+					var chatViewModel = (ViewModels.ChatViewModel)((IServiceProvider)this.Package).GetService(typeof(ViewModels.ChatViewModel));
+					_content = new Controls.OllamaAgentToolWindowControl(chatViewModel);
 				}
 				return _content;
 			}
