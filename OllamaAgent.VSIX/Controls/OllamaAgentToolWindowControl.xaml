@@ -3,7 +3,6 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:converters="clr-namespace:OllamaAgent.VSIX.Converters"
-    xmlns:platformUI="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
     xmlns:viewModels="clr-namespace:OllamaAgent.VSIX.ViewModels"
     xmlns:watermark="clr-namespace:OllamaAgent.VSIX.Controls">
 
@@ -249,16 +248,16 @@
             BorderThickness="0"
             ItemTemplateSelector="{StaticResource ChatMessageTemplateSelector}"
             ItemsSource="{Binding ChatHistory}"
-            Visibility="{Binding IsHistoryVisible, Converter={StaticResource InverseBoolToVis}}" />
+            Visibility="{Binding IsHistoryVisible, Converter={StaticResource InverseBoolToVis}}"
+            ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
 
         <!--  Input Area (Bottom)  -->
         <Border
             Grid.Row="3"
             Margin="10"
             Padding="5"
-            Background="{DynamicResource ColorBackgroundSecondary}"
-            BorderBrush="{DynamicResource ColorBorderPrimary}"
-            BorderThickness="1"
+            Background="{DynamicResource ColorBackgroundInput}"
+            BorderThickness="0"
             CornerRadius="5">
 
             <Grid>
@@ -284,7 +283,7 @@
                     watermark:WatermarkService.Watermark="Chat with Ollama..."
                     watermark:WatermarkService.WatermarkFontSize="12"
                     AcceptsReturn="True"
-                    Background="Transparent"
+                    Background="{DynamicResource ColorBackgroundInput}"
                     BorderThickness="0"
                     FontSize="12"
                     Foreground="{DynamicResource ColorTextInput}"

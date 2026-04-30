@@ -1,21 +1,18 @@
-<ResourceDictionary
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" >
-  <DataTemplate x:Key="UserMessageTemplate">
-    <Border
-        MaxWidth="400"
-        Margin="30,8,8,8"
-        Padding="8"
-        HorizontalAlignment="Right"
-        Background="{DynamicResource ToolWindowBackground}"
-        BorderThickness="0"
-        CornerRadius="8">
-      <TextBlock
-          MaxWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ListBox}}"
-                
-              Foreground="{DynamicResource ColorTextInput}"
-          Text="{Binding Message}"
-          TextWrapping="Wrap" />
-    </Border>
-  </DataTemplate>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DataTemplate x:Key="UserMessageTemplate">
+        <Border
+            MaxWidth="400"
+            Margin="50,0,0,0"
+            Padding="8"
+            HorizontalAlignment="Right"
+            Background="{DynamicResource ColorBackgroundInput}"
+            BorderThickness="0"
+            CornerRadius="8">
+            <TextBlock
+                MaxWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                Foreground="{DynamicResource ColorTextInput}"
+                Text="{Binding Message}"
+                TextWrapping="Wrap" />
+        </Border>
+    </DataTemplate>
 </ResourceDictionary>

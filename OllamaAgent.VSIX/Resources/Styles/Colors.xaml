@@ -10,7 +10,7 @@
 
     <SolidColorBrush x:Key="ColorBackgroundSecondary" Color="{DynamicResource {x:Static vsui:EnvironmentColors.CommandBarGradientBeginColorKey}}" />
 
-    <SolidColorBrush x:Key="ColorBackgroundInput" Color="#FFF" />
+    <SolidColorBrush x:Key="ColorBackgroundInput" Color="{DynamicResource {x:Static vsui:EnvironmentColors.DropDownBackgroundColorKey}}" />
 
     <!--  Text Colors  -->
     <SolidColorBrush x:Key="ColorTextPrimary" Color="{DynamicResource {x:Static vsui:EnvironmentColors.ToolWindowTextColorKey}}" />
@@ -22,14 +22,14 @@
     <!--  Border Colors  -->
     <SolidColorBrush x:Key="ColorBorderPrimary" Color="{DynamicResource {x:Static vsui:EnvironmentColors.CommandBarBorderColorKey}}" />
 
-    <SolidColorBrush x:Key="ColorBorderInput" Color="#CCC" />
+    <SolidColorBrush x:Key="ColorBorderInput" Color="{DynamicResource {x:Static vsui:EnvironmentColors.ToolWindowBorderColorKey}}" />
 
     <!--  Button Specific  -->
     <SolidColorBrush x:Key="ColorButtonBackground" Color="{DynamicResource {x:Static vsui:EnvironmentColors.CommandBarGradientBeginColorKey}}" />
 
     <SolidColorBrush x:Key="ColorButtonText" Color="{DynamicResource {x:Static vsui:EnvironmentColors.CommandBarTextActiveColorKey}}" />
 
-    <SolidColorBrush x:Key="ColorButtonHoverBackground" Color="#DDD" />
+    <SolidColorBrush x:Key="ColorButtonHoverBackground" Color="{DynamicResource {x:Static vsui:EnvironmentColors.ToolWindowBackgroundColorKey}}" />
 
     <!--  Message Bubble Specific  -->
     <SolidColorBrush x:Key="ColorUserMessageBackground" Color="{DynamicResource {x:Static vsui:EnvironmentColors.CommandBarGradientBeginColorKey}}" />
