@@ -133,7 +133,11 @@ namespace OllamaAgent.VSIX.ViewModels
 			{
 				var match = Threads.FirstOrDefault(t => t.Id == currentId);
 				if (match != null)
+				{
 					ActiveThread = match;
+					// Debug: show messages count
+					System.Diagnostics.Debug.WriteLine($"[OllamaAgent] ActiveThread changed to {match.Name} with {match.Messages?.Count ?? 0} messages.");
+				}
 			}
 		}
 
@@ -256,11 +260,16 @@ namespace OllamaAgent.VSIX.ViewModels
 		private async Task CreateAndSwitchToNewThreadAsync()
 		{
 			await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+			if (SelectedModel == null || string.IsNullOrWhiteSpace(SelectedModel.Name))
+			{
+				System.Windows.MessageBox.Show("Please select a model before starting a new thread.", "Model Required");
+				return;
+			}
 			var solutionPath = GetBestSolutionPath();
 			var thread = new ChatThread
 			{
 				Id = Guid.NewGuid().ToString(),
-			   Name = "New Thread",
+				Name = "New Thread",
 				SolutionPath = solutionPath,
 				ModelName = SelectedModel?.Name,
 				CreatedAt = DateTime.UtcNow,
@@ -269,6 +278,8 @@ namespace OllamaAgent.VSIX.ViewModels
 			};
 			Threads.Add(thread);
 			ActiveThread = thread;
+			// Debug: show thread creation
+			System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Created new thread {thread.Id} with model {thread.ModelName}");
 			await SaveThreadAsync(thread);
 		}
 	}
