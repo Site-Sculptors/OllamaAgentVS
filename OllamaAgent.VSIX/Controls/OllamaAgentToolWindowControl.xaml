@@ -171,7 +171,7 @@
             Background="{DynamicResource ColorBackgroundPrimary}"
             BorderBrush="{DynamicResource ColorBorderPrimary}"
             ItemsSource="{Binding Threads}"
-            SelectedItem="{Binding CurrentThread, Mode=TwoWay}"
+            SelectedItem="{Binding ActiveThread, Mode=TwoWay}"
             Visibility="{Binding IsHistoryVisible, Converter={StaticResource BoolToVis}}">
             <ListBox.ItemTemplate>
                 <DataTemplate>

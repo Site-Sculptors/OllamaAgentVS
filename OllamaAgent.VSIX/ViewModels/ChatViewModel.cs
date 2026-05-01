@@ -67,6 +67,7 @@ namespace OllamaAgent.VSIX.ViewModels
 			return null;
 		}
 
+
 		public ObservableCollection<ChatThread> Threads { get; }
 
 		private ChatThread _activeThread;
@@ -82,6 +83,13 @@ namespace OllamaAgent.VSIX.ViewModels
 					OnPropertyChanged(nameof(ChatHistory));
 				}
 			}
+		}
+
+		// Synchronize thread selection with the UI
+		public ChatThread CurrentThread
+		{
+			get => ActiveThread;
+			set => ActiveThread = value;
 		}
 
 		public ObservableCollection<ChatMessage> ChatHistory => ActiveThread?.Messages ?? _emptyMessages;
@@ -115,11 +123,18 @@ namespace OllamaAgent.VSIX.ViewModels
 		{
 			thread.LastActivityAt = DateTime.UtcNow;
 			await _chatThreadStore.SaveThreadAsync(thread);
-			// Resort threads
+			// Preserve the current thread selection
+			var currentId = thread?.Id;
 			var sorted = Threads.OrderByDescending(t => t.LastActivityAt).ToList();
 			Threads.Clear();
 			foreach (var t in sorted)
 				Threads.Add(t);
+			if (!string.IsNullOrEmpty(currentId))
+			{
+				var match = Threads.FirstOrDefault(t => t.Id == currentId);
+				if (match != null)
+					ActiveThread = match;
+			}
 		}
 
 
@@ -193,42 +208,45 @@ namespace OllamaAgent.VSIX.ViewModels
 				ActiveThread.Messages.Add(new ChatMessage { Role = ChatRole.User, Message = userInput });
 				Input = string.Empty;
 
-				var response = await _ollamaChatService.GenerateCompletionAsync(OllamaEndpoint, SelectedModel.Name, userInput);
+				// Build conversation context
+				var conversation = string.Join("\n", ActiveThread.Messages.Select(m => $"{m.Role}: {m.Message}"));
+				var prompt = $"Given the following conversation, reply as the assistant. Also, suggest a concise thread title (max 5 words) that summarizes the conversation so far. Format your response as:\nMessage: <your reply>\nTitle: <suggested title>\n\nConversation:\n{conversation}\nUser: {userInput}";
+
+				var response = await _ollamaChatService.GenerateCompletionAsync(OllamaEndpoint, SelectedModel.Name, prompt);
+				string aiMessage = null;
+				string newTitle = null;
 				if (!string.IsNullOrWhiteSpace(response))
 				{
-					ActiveThread.Messages.Add(new ChatMessage { Role = ChatRole.AI, Message = response });
+					// Parse response for Message: ... and Title: ...
+					var lines = response.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+					foreach (var line in lines)
+					{
+						if (line.StartsWith("Message:", StringComparison.OrdinalIgnoreCase))
+							aiMessage = line.Substring("Message:".Length).Trim();
+						else if (line.StartsWith("Title:", StringComparison.OrdinalIgnoreCase))
+							newTitle = line.Substring("Title:".Length).Trim();
+					}
+				}
+
+				if (!string.IsNullOrWhiteSpace(aiMessage))
+				{
+					ActiveThread.Messages.Add(new ChatMessage { Role = ChatRole.AI, Message = aiMessage });
 				}
 				else
 				{
 					ActiveThread.Messages.Add(new ChatMessage { Role = ChatRole.AI, Message = "No response from model." });
 				}
 
-				// Auto-summarize thread name in background if still auto-named
-				if (ActiveThread.IsAutoNamed)
-				{
-					var thread = ActiveThread;
-					_ = System.Threading.Tasks.Task.Run(async () =>
-					{
-						// Simple summary: first 2 user messages concatenated, trimmed to 60 chars
-						var userMsgs = thread.Messages
-							.Where(m => m.Role == ChatRole.User && !string.IsNullOrWhiteSpace(m.Message))
-							.Take(2)
-							.Select(m => m.Message.Trim())
-							.ToList();
-						var summary = string.Join(" | ", userMsgs);
-						if (summary.Length > 60)
-							summary = summary.Substring(0, 60) + "...";
-						if (string.IsNullOrWhiteSpace(summary))
-							summary = "New Thread";
 
-						// Update on UI thread
-						await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-						thread.Name = summary;
-						thread.IsAutoNamed = false;
-						OnPropertyChanged(nameof(ActiveThread));
-						OnPropertyChanged(nameof(Threads));
-						await SaveThreadAsync(thread);
-					});
+
+
+				// Update thread name if auto-named and model returned a title
+				if (ActiveThread.IsAutoNamed && !string.IsNullOrWhiteSpace(newTitle))
+				{
+					ActiveThread.Name = newTitle;
+					ActiveThread.IsAutoNamed = false;
+					OnPropertyChanged(nameof(ActiveThread));
+					OnPropertyChanged(nameof(Threads));
 				}
 
 				await SaveThreadAsync(ActiveThread);

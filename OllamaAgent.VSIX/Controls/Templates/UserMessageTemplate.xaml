@@ -8,9 +8,17 @@
             Background="{DynamicResource ColorBackgroundInput}"
             BorderThickness="0"
             CornerRadius="8">
-            <TextBlock
+            <TextBox
                 MaxWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                Padding="0"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Center"
+                Background="Transparent"
+                BorderThickness="0"
+                Focusable="True"
                 Foreground="{DynamicResource ColorTextInput}"
+                IsReadOnly="True"
+                IsTabStop="True"
                 Text="{Binding Message}"
                 TextWrapping="Wrap" />
         </Border>
