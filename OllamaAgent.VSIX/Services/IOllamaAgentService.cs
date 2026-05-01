@@ -18,6 +18,5 @@ namespace OllamaAgent.VSIX.Services
 		Task<IReadOnlyList<string>> GetModelsAsync(string endpoint);
 		Task CheckOllamaOnlineAsync(string endpoint, CancellationToken token = default);
 
-		Task<string> GenerateCompletionAsync(string endpoint, string model, string prompt);
 	}
 }

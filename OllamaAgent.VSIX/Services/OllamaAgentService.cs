@@ -117,13 +117,7 @@ namespace OllamaAgent.VSIX.Services
 			}
 		}
 
-		public async Task<string> GenerateCompletionAsync(string endpoint, string model, string prompt)
-		{
-			// TODO: Implement actual call to Ollama API for completion
-			// For now, simulate a response
-			await Task.Delay(100); // Simulate async work
-			return $"Simulated response for model '{model}' and prompt '{prompt}'";
-		}
+
 
 		public void Dispose()
 		{

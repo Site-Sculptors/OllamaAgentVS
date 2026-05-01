@@ -12,7 +12,8 @@ namespace OllamaAgent.VSIX.Controls
 			InitializeComponent();
 			if (viewModel is OllamaOptionsViewModel)
 			{
-				DataContext = viewModel; System.Diagnostics.Debug.WriteLine($"[OllamaOptionsControl] DataContext set: {viewModel.GetType().FullName}, HashCode: {viewModel.GetHashCode()}");
+				DataContext = viewModel; 
+				System.Diagnostics.Debug.WriteLine($"[OllamaOptionsControl] DataContext set: {viewModel.GetType().FullName}, HashCode: {viewModel.GetHashCode()}");
 			}
 			else
 			{

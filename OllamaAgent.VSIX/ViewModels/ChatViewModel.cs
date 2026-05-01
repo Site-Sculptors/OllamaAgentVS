@@ -181,7 +181,7 @@ namespace OllamaAgent.VSIX.ViewModels
 			CurrentThread.Messages.Add(new ChatMessage { Role = ChatRole.User, Message = userInput });
 			Input = string.Empty;
 
-			var response = await OllamaAgentService.GenerateCompletionAsync(OllamaEndpoint, SelectedModel, userInput);
+		   var response = await _ollamaChatService.GenerateCompletionAsync(OllamaEndpoint, SelectedModel, userInput);
 			if (!string.IsNullOrWhiteSpace(response))
 			{
 				CurrentThread.Messages.Add(new ChatMessage { Role = ChatRole.AI, Message = response });

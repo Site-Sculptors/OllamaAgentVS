@@ -52,6 +52,12 @@ public sealed class OllamaAgentVSIXPackage : AsyncPackage
 		   return Task.FromResult<object>(new Services.OllamaModelService());
 	   }, promote: true);
 
+	   // Register IOllamaChatService singleton
+	   this.AddService(typeof(Services.IOllamaChatService), (container, cancellationToken, serviceType) =>
+	   {
+		   return Task.FromResult<object>(new Services.OllamaChatService());
+	   }, promote: true);
+
 	   // Register ChatViewModel singleton
 	   this.AddService(typeof(ViewModels.ChatViewModel), (container, cancellationToken, serviceType) =>
 	   {

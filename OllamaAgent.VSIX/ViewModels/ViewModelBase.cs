@@ -282,37 +282,49 @@ public class ViewModelBase : INotifyPropertyChanged
 
 	private IAsyncRelayCommand _testConnectionCommand;
 	public IAsyncRelayCommand TestConnectionCommand =>
-	   _testConnectionCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
-	   {
-		   if (!AgentEnabled)
-		   {
-			   TestConnectionMessage = "Agent is disabled.";
-			   Status = ServerStatus.Offline;
-			   return;
-		   }
-		   try
-		   {
-			   var models = await OllamaModelService.GetModelsAsync(OllamaEndpoint);
-			   if (models.Count > 0)
-			   {
-				   TestConnectionMessage = $"Connection OK. {models.Count} model(s) found.";
-				   Status = ServerStatus.Online;
-				   await SafeLoadAsync();
-			   }
-			   else
-			   {
-				   Status = ServerStatus.Online;
-				   TestConnectionMessage = "Connection OK, but no models found.";
-				   await SafeLoadAsync();
-			   }
-		   }
-		   catch (Exception ex)
-		   {
-			   Status = ServerStatus.Offline;
-			   TestConnectionMessage = $"Connection failed: {ex.Message}";
-		   }
-	   },
-	   (parameter) => AgentEnabled);
+	  _testConnectionCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
+   {
+	  if (!AgentEnabled)
+	  {
+		 TestConnectionMessage = "Agent is disabled.";
+		 Status = ServerStatus.Offline;
+		 return;
+	  }
+	  if (OllamaModelService == null)
+	  {
+		 TestConnectionMessage = "Model service is not available.";
+		 Status = ServerStatus.Offline;
+		 return;
+	  }
+	  if (string.IsNullOrWhiteSpace(OllamaEndpoint))
+	  {
+		 TestConnectionMessage = "Ollama endpoint is not set.";
+		 Status = ServerStatus.Offline;
+		 return;
+	  }
+	  try
+	  {
+		 var models = await OllamaModelService.GetModelsAsync(OllamaEndpoint);
+		 if (models.Count > 0)
+		 {
+			TestConnectionMessage = $"Connection OK. {models.Count} model(s) found.";
+			Status = ServerStatus.Online;
+			await SafeLoadAsync();
+		 }
+		 else
+		 {
+			Status = ServerStatus.Online;
+			TestConnectionMessage = "Connection OK, but no models found.";
+			await SafeLoadAsync();
+		 }
+	  }
+	  catch (Exception ex)
+	  {
+		 Status = ServerStatus.Offline;
+		 TestConnectionMessage = $"Connection failed: {ex.Message}";
+	  }
+   },
+   (parameter) => AgentEnabled);
 
 	private IAsyncRelayCommand _refreshModelsCommand;
 	public IAsyncRelayCommand RefreshModelsCommand =>
