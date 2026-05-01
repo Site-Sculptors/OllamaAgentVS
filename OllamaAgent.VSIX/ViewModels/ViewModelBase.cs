@@ -25,49 +25,62 @@ using System.Threading;
 using System.Windows.Input;
 
 
+
+using OllamaAgent.VSIX.Models;
+
 public class ViewModelBase : INotifyPropertyChanged
 {
-	public ObservableCollection<string> Models { get; }
 	public event EventHandler<ServerStatus> StatusChanged;
 
 	public IOllamaAgentService OllamaAgentService { get; }
 	public IOllamaModelService OllamaModelService { get; }
 	public OllamaAgentVSIXPackage Package { get; }
+	public IModelStore ModelStore { get; }
 	private readonly CancellationTokenSource _monitorCts = new CancellationTokenSource();
 
-	public ViewModelBase(IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package)
-	{
-		OllamaAgentService = ollamaAgentService;
-		OllamaModelService = ollamaModelService;
-		Package = package;
-
-		Models = new ObservableCollection<string>();
-		LoadSettings();
-
-		_ = StartServerMonitorAsync(_monitorCts.Token);
-
-		StatusChanged += (s, status) =>
-		{
-			if (status == ServerStatus.Online)
-			{
-				_ = SafeLoadAsync();
-			}
-		};
-	}
-
-   public virtual string SelectedModel
+   public ViewModelBase(IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package, IModelStore modelStore)
    {
-	   get => OllamaAgent.VSIX.Properties.Settings.Default.SelectedModel;
-	   set
+	   if (modelStore == null)
+		   throw new ArgumentNullException(nameof(modelStore), "ModelStore cannot be null. Check your DI or constructor calls.");
+	   OllamaAgentService = ollamaAgentService;
+	   OllamaModelService = ollamaModelService;
+	   Package = package;
+	   ModelStore = modelStore;
+
+	   LoadSettings();
+	   _ = StartServerMonitorAsync(_monitorCts.Token);
+
+	   StatusChanged += (s, status) =>
 	   {
-		   if (OllamaAgent.VSIX.Properties.Settings.Default.SelectedModel != value)
+		   if (status == ServerStatus.Online)
 		   {
-			   OllamaAgent.VSIX.Properties.Settings.Default.SelectedModel = value;
-			   OllamaAgent.VSIX.Properties.Settings.Default.Save();
-			   OnPropertyChanged();
+			   _ = SafeLoadAsync();
 		   }
-	   }
+	   };
    }
+
+public ObservableCollection<LLM> Models
+{
+	get
+	{
+		if (ModelStore == null)
+			throw new InvalidOperationException("ModelStore is null. ViewModelBase must be constructed with a valid IModelStore.");
+		return ModelStore.Models;
+	}
+}
+
+	public virtual LLM SelectedModel
+	{
+		get => ModelStore.SelectedModel;
+		set
+		{
+			if (ModelStore.SelectedModel != value)
+			{
+				ModelStore.SelectedModel = value;
+				OnPropertyChanged();
+			}
+		}
+	}
 
 
 	public void LoadSettings()
@@ -283,6 +296,7 @@ public class ViewModelBase : INotifyPropertyChanged
 		},
 		(parameter) => AgentEnabled);
 
+
 	private IAsyncRelayCommand _testConnectionCommand;
 	public IAsyncRelayCommand TestConnectionCommand =>
 	  _testConnectionCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
@@ -359,18 +373,23 @@ public class ViewModelBase : INotifyPropertyChanged
 			}
 			var models = await OllamaModelService.GetModelsAsync(OllamaEndpoint);
 			await Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-			var oldSelected = SelectedModel;
-			Models.Clear();
-			foreach (var m in models)
-				Models.Add(m);
-			if (!string.IsNullOrWhiteSpace(oldSelected) && Models.Contains(oldSelected))
-			{
-				SelectedModel = oldSelected;
-			}
-			else if (Models.Count > 0)
-			{
-				SelectedModel = Models[0];
-			}
+		   var oldSelected = SelectedModel?.Name;
+			  Models.Clear();
+		   foreach (var m in models)
+		   {
+			   if (!string.IsNullOrWhiteSpace(m))
+				   Models.Add(new LLM { Name = m });
+		   }
+		   if (!string.IsNullOrWhiteSpace(oldSelected))
+		   {
+			   var match = Models.FirstOrDefault(x => x.Name == oldSelected);
+			   if (match != null)
+				   SelectedModel = match;
+		   }
+		   else if (Models.Count > 0)
+		   {
+			   SelectedModel = Models[0];
+		   }
 		}
 		catch (Exception ex)
 		{

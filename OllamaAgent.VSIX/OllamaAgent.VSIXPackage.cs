@@ -58,14 +58,21 @@ public sealed class OllamaAgentVSIXPackage : AsyncPackage
 		   return Task.FromResult<object>(new Services.OllamaChatService());
 	   }, promote: true);
 
-	   // Register ChatViewModel singleton
-	   this.AddService(typeof(ViewModels.ChatViewModel), (container, cancellationToken, serviceType) =>
+	   // Register ModelStore singleton
+	   this.AddService(typeof(Services.IModelStore), (container, cancellationToken, serviceType) =>
 	   {
-		   var chatService = (Services.IOllamaChatService)((IServiceProvider)container).GetService(typeof(Services.IOllamaChatService));
-		   var agentService = (Services.IOllamaAgentService)((IServiceProvider)container).GetService(typeof(Services.IOllamaAgentService));
-		   var modelService = (Services.IOllamaModelService)((IServiceProvider)container).GetService(typeof(Services.IOllamaModelService));
-		   return Task.FromResult<object>(new ChatViewModel(chatService, agentService, modelService, this));
+		   return Task.FromResult<object>(new Services.ModelStore());
 	   }, promote: true);
+
+	  // Register ChatViewModel singleton
+   this.AddService(typeof(ViewModels.ChatViewModel), (container, cancellationToken, serviceType) =>
+   {
+	  var chatService = (Services.IOllamaChatService)((IServiceProvider)container).GetService(typeof(Services.IOllamaChatService));
+	  var agentService = (Services.IOllamaAgentService)((IServiceProvider)container).GetService(typeof(Services.IOllamaAgentService));
+	  var modelService = (Services.IOllamaModelService)((IServiceProvider)container).GetService(typeof(Services.IOllamaModelService));
+	  var modelStore = (Services.IModelStore)((IServiceProvider)container).GetService(typeof(Services.IModelStore));
+	  return Task.FromResult<object>(new ViewModels.ChatViewModel(chatService, agentService, modelService, this, modelStore));
+   }, promote: true);
 
 	   // Registers VSCT commands at runtime
 	   await OllamaAgentCommand.InitializeAsync(this);

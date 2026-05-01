@@ -12,22 +12,22 @@ namespace OllamaAgent.VSIX
 {
 	public class OllamaAgentOptionsPage : UIElementDialogPage
 	{
-		private OllamaOptionsControl _control;
-
-		private OllamaOptionsViewModel _viewModel;
+	   private OllamaOptionsControl _control;
+	   private OllamaOptionsViewModel _viewModel;
 
 		protected override UIElement Child
 		{
 			get
 			{
-				if (_control == null)
-				{
-					var agentService = (IOllamaAgentService)Package.GetGlobalService(typeof(IOllamaAgentService));
-					var modelService = (IOllamaModelService)Package.GetGlobalService(typeof(IOllamaModelService));
-					_viewModel = new OllamaOptionsViewModel(agentService, modelService, null);
-					System.Diagnostics.Debug.WriteLine($"[OptionsPage] Manually constructed ViewModel: {_viewModel.GetType().FullName}, HashCode: {_viewModel.GetHashCode()}");
-					_control = new OllamaOptionsControl(_viewModel);
-				}
+				  if (_control == null)
+			   {
+				   var agentService = (IOllamaAgentService)Package.GetGlobalService(typeof(IOllamaAgentService));
+				   var modelService = (IOllamaModelService)Package.GetGlobalService(typeof(IOllamaModelService));
+				   var modelStore = (IModelStore)Package.GetGlobalService(typeof(IModelStore));
+				   var vsixPackage = (OllamaAgentVSIXPackage)((IServiceProvider)this.Site).GetService(typeof(OllamaAgentVSIXPackage));
+				   _viewModel = new OllamaOptionsViewModel(agentService, modelService, vsixPackage, modelStore);
+				   _control = new OllamaOptionsControl(_viewModel);
+			   }
 
 				return _control;
 			}

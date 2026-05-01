@@ -7,12 +7,12 @@ namespace OllamaAgent.VSIX.Controls
 	public partial class OllamaOptionsControl : UserControl
 	{
 
-		public OllamaOptionsControl(OllamaOptionsViewModel viewModel)
+		public OllamaOptionsControl(ViewModelBase viewModel)
 		{
 			InitializeComponent();
-			if (viewModel is OllamaOptionsViewModel)
+			if (viewModel != null)
 			{
-				DataContext = viewModel; 
+				DataContext = viewModel;
 				System.Diagnostics.Debug.WriteLine($"[OllamaOptionsControl] DataContext set: {viewModel.GetType().FullName}, HashCode: {viewModel.GetHashCode()}");
 			}
 			else

@@ -24,14 +24,14 @@ namespace OllamaAgent.VSIX.ViewModels
 		private static readonly ObservableCollection<ChatMessage> _emptyMessages = new ObservableCollection<ChatMessage>();
 		private readonly IOllamaChatService _ollamaChatService;
 
-		public ChatViewModel(IOllamaChatService ollamaChatService, IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package)
-			: base(ollamaAgentService, ollamaModelService, package)
-		{
-			Threads = new ObservableCollection<ChatThread?>();
-			Threads.CollectionChanged += (s, e) => SaveThreads();
-			_ = LoadThreadsAsync();
-			_ollamaChatService = ollamaChatService;
-		}
+	   public ChatViewModel(IOllamaChatService ollamaChatService, IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package, IModelStore modelStore)
+		   : base(ollamaAgentService, ollamaModelService, package, modelStore)
+	   {
+		   Threads = new ObservableCollection<ChatThread?>();
+		   Threads.CollectionChanged += (s, e) => SaveThreads();
+		   _ = LoadThreadsAsync();
+		   _ollamaChatService = ollamaChatService;
+	   }
 
 		private string GetSolutionPath()
 		{
@@ -178,22 +178,22 @@ namespace OllamaAgent.VSIX.ViewModels
 			_sendCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
 		{
 			var userInput = Input;
-			if (string.IsNullOrWhiteSpace(userInput) || string.IsNullOrWhiteSpace(SelectedModel) || CurrentThread == null)
-				return;
+		   if (string.IsNullOrWhiteSpace(userInput) || SelectedModel == null || string.IsNullOrWhiteSpace(SelectedModel.Name) || CurrentThread == null)
+			   return;
 
-			CurrentThread.Messages.Add(new ChatMessage { Role = ChatRole.User, Message = userInput });
-			Input = string.Empty;
+		   CurrentThread.Messages.Add(new ChatMessage { Role = ChatRole.User, Message = userInput });
+		   Input = string.Empty;
 
-		   var response = await _ollamaChatService.GenerateCompletionAsync(OllamaEndpoint, SelectedModel, userInput);
-			if (!string.IsNullOrWhiteSpace(response))
-			{
-				CurrentThread.Messages.Add(new ChatMessage { Role = ChatRole.AI, Message = response });
-			}
-			else
-			{
-				CurrentThread.Messages.Add(new ChatMessage { Role = ChatRole.AI, Message = "No response from model." });
-			}
-			SaveThreads();
+		   var response = await _ollamaChatService.GenerateCompletionAsync(OllamaEndpoint, SelectedModel.Name, userInput);
+		   if (!string.IsNullOrWhiteSpace(response))
+		   {
+			   CurrentThread.Messages.Add(new ChatMessage { Role = ChatRole.AI, Message = response });
+		   }
+		   else
+		   {
+			   CurrentThread.Messages.Add(new ChatMessage { Role = ChatRole.AI, Message = "No response from model." });
+		   }
+		   SaveThreads();
 		});
 
 		private void CreateAndSwitchToNewThread()

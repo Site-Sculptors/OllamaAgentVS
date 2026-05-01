@@ -232,6 +232,7 @@
                     MinWidth="200"
                     Margin="5"
                     HorizontalAlignment="Left"
+                    DisplayMemberPath="Name"
                     IsEnabled="{Binding AgentEnabled}"
                     ItemsSource="{Binding Models}"
                     SelectedItem="{Binding SelectedModel, Mode=TwoWay}" />

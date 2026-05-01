@@ -17,21 +17,11 @@ namespace OllamaAgent.VSIX.ViewModels
 	{
 
 
-		public OllamaOptionsViewModel(IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package)
-			: base(ollamaAgentService, ollamaModelService, package)
-		{
-			// Load from user settings
-			ModelsDirectory = Settings.Default.ModelsDirectory;
-
-			// Subscribe to settings changes
-			Settings.Default.PropertyChanged += (s, e) =>
-			{
-				if (e.PropertyName == nameof(Settings.Default.SelectedModel))
-				{
-					OnPropertyChanged(nameof(SelectedModel));
-				}
-			};
-		}
+	   public OllamaOptionsViewModel(IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package, IModelStore modelStore)
+		   : base(ollamaAgentService, ollamaModelService, package, modelStore)
+	   {
+		   ModelsDirectory = Settings.Default.ModelsDirectory;
+	   }
 
 		private ICommand _selectModelsDirectoryCommand;
 		public ICommand SelectModelsDirectoryCommand =>

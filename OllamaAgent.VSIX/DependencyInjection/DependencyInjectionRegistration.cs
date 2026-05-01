@@ -19,6 +19,7 @@ public static class DependencyInjectionRegistration
 		services.AddSingleton<IOllamaAgentService, OllamaAgentService>();
 		services.AddSingleton<IOllamaChatService, OllamaChatService>();
 		services.AddSingleton<IOllamaModelService, OllamaModelService>();
+		services.AddSingleton<IModelStore, ModelStore>();
 	}
 	public static void ConfigureViewModels(IServiceCollection services)
 	{
@@ -26,6 +27,6 @@ public static class DependencyInjectionRegistration
 
 		services.AddSingleton<ViewModelBase>();
 		services.AddSingleton<OllamaOptionsViewModel>();
-		services.AddTransient<ChatViewModel>();
+		services.AddSingleton<ChatViewModel>();
 	}
 }
