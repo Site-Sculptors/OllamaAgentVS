@@ -92,6 +92,7 @@ namespace OllamaAgent.VSIX.ViewModels
 			catch { /* ignore errors */ }
 		}
 
+
 		private string _input;
 		public string Input
 		{
@@ -104,6 +105,8 @@ namespace OllamaAgent.VSIX.ViewModels
 					arc.RaiseCanExecuteChanged();
 			}
 		}
+
+
 
 		public ObservableCollection<ChatThread?>? Threads { get; }
 

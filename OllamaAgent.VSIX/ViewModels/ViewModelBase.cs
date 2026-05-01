@@ -55,16 +55,19 @@ public class ViewModelBase : INotifyPropertyChanged
 		};
 	}
 
-	private string _selectedModel;
-	public string SelectedModel
-	{
-		get => _selectedModel;
-		set
-		{
-			_selectedModel = value;
-			OnPropertyChanged();
-		}
-	}
+   public virtual string SelectedModel
+   {
+	   get => OllamaAgent.VSIX.Properties.Settings.Default.SelectedModel;
+	   set
+	   {
+		   if (OllamaAgent.VSIX.Properties.Settings.Default.SelectedModel != value)
+		   {
+			   OllamaAgent.VSIX.Properties.Settings.Default.SelectedModel = value;
+			   OllamaAgent.VSIX.Properties.Settings.Default.Save();
+			   OnPropertyChanged();
+		   }
+	   }
+   }
 
 
 	public void LoadSettings()

@@ -58,5 +58,17 @@ namespace OllamaAgent.VSIX.Properties {
 				this["EnableAgent"] = value;
 			}
 		}
+
+		[global::System.Configuration.UserScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute("")]
+		public string SelectedModel {
+			get {
+				return ((string)(this["SelectedModel"]));
+			}
+			set {
+				this["SelectedModel"] = value;
+			}
+		}
 	}
 }
