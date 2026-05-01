@@ -209,7 +209,7 @@ namespace OllamaAgent.VSIX.ViewModels
 			_sendCommand ??= new CommunityToolkit.Mvvm.Input.AsyncRelayCommand<object>(async (parameter) =>
 			{
 				var userInput = Input;
-				if (string.IsNullOrWhiteSpace(userInput) || SelectedModel == null || string.IsNullOrWhiteSpace(SelectedModel.Name) || ActiveThread == null)
+				if (string.IsNullOrWhiteSpace(userInput) || SelectedChatModel == null || string.IsNullOrWhiteSpace(SelectedChatModel.Name) || ActiveThread == null)
 					return;
 
 				ActiveThread.Messages.Add(new ChatMessage { Role = ChatRole.User, Message = userInput });
@@ -219,7 +219,7 @@ namespace OllamaAgent.VSIX.ViewModels
 				var conversation = string.Join("\n", ActiveThread.Messages.Select(m => $"{m.Role}: {m.Message}"));
 				var prompt = $"Given the following conversation, reply as the assistant. Also, suggest a concise thread title (max 5 words) that summarizes the conversation so far. Format your response as:\nMessage: <your reply>\nTitle: <suggested title>\n\nConversation:\n{conversation}\nUser: {userInput}";
 
-				var response = await _ollamaChatService.GenerateCompletionAsync(OllamaEndpoint, SelectedModel.Name, prompt);
+				var response = await _ollamaChatService.GenerateCompletionAsync(OllamaEndpoint, SelectedChatModel.Name, prompt);
 				string aiMessage = null;
 				string newTitle = null;
 				if (!string.IsNullOrWhiteSpace(response))
@@ -263,7 +263,7 @@ namespace OllamaAgent.VSIX.ViewModels
 		private async Task CreateAndSwitchToNewThreadAsync()
 		{
 			await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-			if (SelectedModel == null || string.IsNullOrWhiteSpace(SelectedModel.Name))
+			if (SelectedChatModel == null || string.IsNullOrWhiteSpace(SelectedChatModel.Name))
 			{
 				System.Windows.MessageBox.Show("Please select a model before starting a new thread.", "Model Required");
 				return;
@@ -274,7 +274,7 @@ namespace OllamaAgent.VSIX.ViewModels
 				Id = Guid.NewGuid().ToString(),
 				Name = "New Thread",
 				SolutionPath = solutionPath,
-				ModelName = SelectedModel?.Name,
+				ModelName = SelectedChatModel?.Name,
 				CreatedAt = DateTime.UtcNow,
 				LastActivityAt = DateTime.UtcNow,
 				IsAutoNamed = true

@@ -9,7 +9,8 @@ namespace OllamaAgent.VSIX.Services
 public class ModelStore : IModelStore, INotifyPropertyChanged
 	{
 		private ObservableCollection<LLM> _models = new ObservableCollection<LLM>();
-		private LLM _selectedModel;
+		private LLM _selectedChatModel;
+		private LLM _selectedCompletionModel;
 
 		public ObservableCollection<LLM> Models
 		{
@@ -24,15 +25,28 @@ public class ModelStore : IModelStore, INotifyPropertyChanged
 			}
 		}
 
-		public LLM SelectedModel
+		public LLM SelectedChatModel
 		{
-			get => _selectedModel;
+			get => _selectedChatModel;
 			set
 			{
-				if (_selectedModel != value)
+				if (_selectedChatModel != value)
 				{
-					_selectedModel = value;
-					OnPropertyChanged(nameof(SelectedModel));
+					_selectedChatModel = value;
+					OnPropertyChanged(nameof(SelectedChatModel));
+				}
+			}
+		}
+
+		public LLM SelectedCompletionModel
+		{
+			get => _selectedCompletionModel;
+			set
+			{
+				if (_selectedCompletionModel != value)
+				{
+					_selectedCompletionModel = value;
+					OnPropertyChanged(nameof(SelectedCompletionModel));
 				}
 			}
 		}

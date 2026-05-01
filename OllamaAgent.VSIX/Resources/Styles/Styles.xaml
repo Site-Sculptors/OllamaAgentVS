@@ -116,7 +116,7 @@
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="IconText" Property="Foreground" Value="{DynamicResource ColorButtonHoverBackground}" />
+                            <Setter TargetName="IconText" Property="FontSize" Value="15" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="IconText" Property="Foreground" Value="{DynamicResource ColorButtonHoverBackground}" />

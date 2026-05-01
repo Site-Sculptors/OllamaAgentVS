@@ -249,7 +249,7 @@
                     DisplayMemberPath="Name"
                     IsEnabled="{Binding AgentEnabled}"
                     ItemsSource="{Binding Models}"
-                    SelectedItem="{Binding SelectedModel, Mode=TwoWay}" />
+                    SelectedItem="{Binding SelectedChatModel, Mode=TwoWay}" />
 
                 <!--  Action Buttons  -->
                 <Button

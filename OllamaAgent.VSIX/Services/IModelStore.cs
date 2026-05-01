@@ -8,6 +8,7 @@ namespace OllamaAgent.VSIX.Services
 	public interface IModelStore : INotifyPropertyChanged
 	{
 		ObservableCollection<LLM> Models { get; set; }
-		LLM SelectedModel { get; set; }
+		LLM SelectedChatModel { get; set; }
+		LLM SelectedCompletionModel { get; set; }
 	}
 }

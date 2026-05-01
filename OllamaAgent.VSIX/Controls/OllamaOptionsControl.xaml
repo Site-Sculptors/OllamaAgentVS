@@ -68,7 +68,7 @@
         <TextBlock
             Margin="0,8,0,0"
             VerticalAlignment="Center"
-            Text="Chats Directory:" />
+            Text="Chats Save Directory:" />
         <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
             <TextBox
                 Width="Auto"
@@ -85,12 +85,20 @@
         </StackPanel>
 
         <StackPanel VerticalAlignment="Center" Orientation="Vertical">
-            <TextBlock Margin="0,10,0,0" Text="Model" />
+            <TextBlock Margin="0,10,0,0" Text="Chat Model" />
             <ComboBox
                 DisplayMemberPath="Name"
                 IsEnabled="{Binding AgentEnabled}"
                 ItemsSource="{Binding Models}"
-                SelectedItem="{Binding SelectedModel, Mode=TwoWay}" />
+                SelectedItem="{Binding SelectedChatModel, Mode=TwoWay}" />
+        </StackPanel>
+        <StackPanel VerticalAlignment="Center" Orientation="Vertical">
+            <TextBlock Margin="0,10,0,0" Text="CompletionModel" />
+            <ComboBox
+                DisplayMemberPath="Name"
+                IsEnabled="{Binding AgentEnabled}"
+                ItemsSource="{Binding Models}"
+                SelectedItem="{Binding SelectedCompletionModel, Mode=TwoWay}" />
         </StackPanel>
         <TextBlock
             Margin="0,8,0,0"

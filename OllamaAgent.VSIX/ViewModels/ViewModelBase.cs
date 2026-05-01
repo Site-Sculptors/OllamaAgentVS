@@ -49,7 +49,7 @@ public class ViewModelBase : INotifyPropertyChanged
 		ModelStore = modelStore;
 
 		// FIX #1: Subscribe to ModelStore.PropertyChanged so that when any ViewModel
-		// mutates SelectedModel or Models on the shared store, all other ViewModels
+		// mutates SelectedChatModel or Models on the shared store, all other ViewModels
 		// bound to those properties get notified and their UI updates too.
 		ModelStore.PropertyChanged += ModelStore_PropertyChanged;
 
@@ -66,11 +66,11 @@ public class ViewModelBase : INotifyPropertyChanged
 	}
 
 	// FIX #1: Forward ModelStore property changes as this ViewModel's own
-	// PropertyChanged notifications so WPF bindings on Models and SelectedModel update.
+	// PropertyChanged notifications so WPF bindings on Models and SelectedChatModel update.
 	private void ModelStore_PropertyChanged(object sender, PropertyChangedEventArgs e)
 	{
-		if (e.PropertyName == nameof(IModelStore.SelectedModel))
-			OnPropertyChanged(nameof(SelectedModel));
+		if (e.PropertyName == nameof(IModelStore.SelectedChatModel))
+			OnPropertyChanged(nameof(SelectedChatModel));
 
 		if (e.PropertyName == nameof(IModelStore.Models))
 			OnPropertyChanged(nameof(Models));
@@ -86,16 +86,31 @@ public class ViewModelBase : INotifyPropertyChanged
 		}
 	}
 
-	public virtual LLM SelectedModel
+	public virtual LLM SelectedChatModel
 	{
-		get => ModelStore.SelectedModel;
+		get => ModelStore.SelectedChatModel;
 		set
 		{
-			if (ModelStore.SelectedModel != value)
+			if (ModelStore.SelectedChatModel != value)
 			{
-				ModelStore.SelectedModel = value;
+				ModelStore.SelectedChatModel = value;
 				// NOTE: No OnPropertyChanged() call needed here.
-				// Setting ModelStore.SelectedModel fires ModelStore.PropertyChanged,
+				// Setting ModelStore.SelectedChatModel fires ModelStore.PropertyChanged,
+				// which ModelStore_PropertyChanged catches and forwards for us.
+				// Calling it here too would cause a double-notification.
+			}
+		}
+	}
+	public virtual LLM SelectedCompletionModel
+	{
+		get => ModelStore.SelectedCompletionModel;
+		set
+		{
+			if (ModelStore.SelectedCompletionModel != value)
+			{
+				ModelStore.SelectedCompletionModel = value;
+				// NOTE: No OnPropertyChanged() call needed here.
+				// Setting ModelStore.SelectedCompletionModel fires ModelStore.PropertyChanged,
 				// which ModelStore_PropertyChanged catches and forwards for us.
 				// Calling it here too would cause a double-notification.
 			}
@@ -432,7 +447,7 @@ public class ViewModelBase : INotifyPropertyChanged
 
 			await Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-			var oldSelected = SelectedModel?.Name;
+			var oldSelected = SelectedChatModel?.Name;
 			Models.Clear();
 			foreach (var m in models)
 			{
@@ -444,11 +459,11 @@ public class ViewModelBase : INotifyPropertyChanged
 			{
 				var match = Models.FirstOrDefault(x => x.Name == oldSelected);
 				if (match != null)
-					SelectedModel = match;
+					SelectedChatModel = match;
 			}
 			else if (Models.Count > 0)
 			{
-				SelectedModel = Models[0];
+				SelectedChatModel = Models[0];
 			}
 		}
 		catch (Exception ex)
