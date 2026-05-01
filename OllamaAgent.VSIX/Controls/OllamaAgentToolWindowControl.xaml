@@ -47,13 +47,26 @@
     <Grid Background="{DynamicResource ColorBackgroundPrimary}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
+        <TextBlock
+            Grid.Row="0"
+            Margin="10,0"
+            VerticalAlignment="Center"
+            FontSize="15"
+            FontWeight="Bold"
+            Foreground="{DynamicResource ColorTextPrimary}"
+            Text="{Binding ActiveThread.Name}"
+            TextTrimming="CharacterEllipsis"
+            TextWrapping="NoWrap"
+            ToolTip="{Binding ActiveThread.Name}" />
+
         <!--  Toolbar Row  -->
-        <Grid Grid.Row="0" Margin="10">
+        <Grid Grid.Row="1" Margin="10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
@@ -153,7 +166,7 @@
         <!--  Chat Threads List (History View)  -->
         <ListBox
             x:Name="ChatThreadsList"
-            Grid.Row="1"
+            Grid.Row="2"
             Margin="10"
             Background="{DynamicResource ColorBackgroundPrimary}"
             BorderBrush="{DynamicResource ColorBorderPrimary}"
@@ -173,7 +186,7 @@
         <!--  Current Chat Messages  -->
         <ListBox
             x:Name="CurrentChat"
-            Grid.Row="1"
+            Grid.Row="2"
             MaxWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ListBox}}"
             Margin="10"
             HorizontalContentAlignment="Stretch"

@@ -202,6 +202,35 @@ namespace OllamaAgent.VSIX.ViewModels
 				{
 					ActiveThread.Messages.Add(new ChatMessage { Role = ChatRole.AI, Message = "No response from model." });
 				}
+
+				// Auto-summarize thread name in background if still auto-named
+				if (ActiveThread.IsAutoNamed)
+				{
+					var thread = ActiveThread;
+					_ = System.Threading.Tasks.Task.Run(async () =>
+					{
+						// Simple summary: first 2 user messages concatenated, trimmed to 60 chars
+						var userMsgs = thread.Messages
+							.Where(m => m.Role == ChatRole.User && !string.IsNullOrWhiteSpace(m.Message))
+							.Take(2)
+							.Select(m => m.Message.Trim())
+							.ToList();
+						var summary = string.Join(" | ", userMsgs);
+						if (summary.Length > 60)
+							summary = summary.Substring(0, 60) + "...";
+						if (string.IsNullOrWhiteSpace(summary))
+							summary = "New Thread";
+
+						// Update on UI thread
+						await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+						thread.Name = summary;
+						thread.IsAutoNamed = false;
+						OnPropertyChanged(nameof(ActiveThread));
+						OnPropertyChanged(nameof(Threads));
+						await SaveThreadAsync(thread);
+					});
+				}
+
 				await SaveThreadAsync(ActiveThread);
 			});
 
@@ -213,7 +242,7 @@ namespace OllamaAgent.VSIX.ViewModels
 			var thread = new ChatThread
 			{
 				Id = Guid.NewGuid().ToString(),
-				Name = $"Thread {Threads.Count + 1}",
+			   Name = "New Thread",
 				SolutionPath = solutionPath,
 				ModelName = SelectedModel?.Name,
 				CreatedAt = DateTime.UtcNow,
