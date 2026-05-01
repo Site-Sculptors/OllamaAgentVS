@@ -76,12 +76,13 @@ namespace OllamaAgent.VSIX.ViewModels
 			get => _activeThread;
 			set
 			{
-				if (_activeThread != value)
-				{
-					_activeThread = value;
-					OnPropertyChanged();
-					OnPropertyChanged(nameof(ChatHistory));
-				}
+			   // Always update and notify, even if the same instance, to force UI refresh
+			   _activeThread = value;
+			   OnPropertyChanged();
+			   OnPropertyChanged(nameof(ChatHistory));
+			   // Hide history view when a thread is selected
+			   if (value != null && IsHistoryVisible)
+				   IsHistoryVisible = false;
 			}
 		}
 
@@ -104,18 +105,22 @@ namespace OllamaAgent.VSIX.ViewModels
 			else
 				threads = await _chatThreadStore.LoadGlobalThreadsAsync();
 
-			Threads.Clear();
-			foreach (var t in threads.OrderByDescending(t => t.LastActivityAt))
-				Threads.Add(t);
+		   Threads.Clear();
+		   foreach (var t in threads.OrderByDescending(t => t.LastActivityAt))
+			   Threads.Add(t);
 
-			// Use LINQ to find the thread for the current solution
-			var match = Threads.FirstOrDefault(t => t.SolutionPath == solutionPath);
-			if (match != null)
-				ActiveThread = match;
-			else if (Threads.Count > 0)
-				ActiveThread = Threads[0];
-			else
-				await CreateAndSwitchToNewThreadAsync();
+		   // Always set ActiveThread to the instance from the new collection (by Id)
+		   ChatThread match = null;
+		   if (ActiveThread != null)
+			   match = Threads.FirstOrDefault(t => t.Id == ActiveThread.Id);
+		   if (match == null)
+			   match = Threads.FirstOrDefault(t => t.SolutionPath == solutionPath);
+		   if (match != null)
+			   ActiveThread = match;
+		   else if (Threads.Count > 0)
+			   ActiveThread = Threads[0];
+		   else
+			   await CreateAndSwitchToNewThreadAsync();
 		}
 
 
@@ -124,21 +129,19 @@ namespace OllamaAgent.VSIX.ViewModels
 			thread.LastActivityAt = DateTime.UtcNow;
 			await _chatThreadStore.SaveThreadAsync(thread);
 			// Preserve the current thread selection
-			var currentId = thread?.Id;
-			var sorted = Threads.OrderByDescending(t => t.LastActivityAt).ToList();
-			Threads.Clear();
-			foreach (var t in sorted)
-				Threads.Add(t);
-			if (!string.IsNullOrEmpty(currentId))
-			{
-				var match = Threads.FirstOrDefault(t => t.Id == currentId);
-				if (match != null)
-				{
-					ActiveThread = match;
-					// Debug: show messages count
-					System.Diagnostics.Debug.WriteLine($"[OllamaAgent] ActiveThread changed to {match.Name} with {match.Messages?.Count ?? 0} messages.");
-				}
-			}
+		   var currentId = thread?.Id;
+		   var sorted = Threads.OrderByDescending(t => t.LastActivityAt).ToList();
+		   Threads.Clear();
+		   foreach (var t in sorted)
+			   Threads.Add(t);
+		   if (!string.IsNullOrEmpty(currentId))
+		   {
+			   var match = Threads.FirstOrDefault(t => t.Id == currentId);
+			   if (match != null)
+			   {
+				   ActiveThread = match;
+			   }
+		   }
 		}
 
 
