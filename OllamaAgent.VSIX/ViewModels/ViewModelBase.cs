@@ -122,6 +122,12 @@ public class ViewModelBase : INotifyPropertyChanged
 			_modelsDirectory = persistedModelsDirectory;
 			OnPropertyChanged(nameof(ModelsDirectory));
 		}
+
+		var persistedChatsDirectory = OllamaAgent.VSIX.Properties.Settings.Default.ChatsDirectory;
+		if (!string.IsNullOrWhiteSpace(persistedChatsDirectory))
+		{
+		ChatsDirectory = persistedChatsDirectory;
+		}
 	}
 
 	public void SaveSettings()
@@ -199,6 +205,22 @@ public class ViewModelBase : INotifyPropertyChanged
 				Settings.Default.Save();
 				// Refresh models for all windows
 				_ = SafeLoadAsync();
+			}
+		}
+	}
+
+	private string _chatsDirectory;
+	public string ChatsDirectory
+	{
+		get => _chatsDirectory;
+		set
+		{
+			if (_chatsDirectory != value)
+			{
+				_chatsDirectory = value;
+				OnPropertyChanged();
+				Settings.Default.ChatsDirectory = value;
+				Settings.Default.Save();
 			}
 		}
 	}
@@ -397,6 +419,17 @@ public class ViewModelBase : INotifyPropertyChanged
 
 			var models = await OllamaModelService.GetModelsAsync(OllamaEndpoint);
 
+		// Update status based on model retrieval
+		if (models.Count > 0)
+		{
+			if (Status != ServerStatus.Online)
+				Status = ServerStatus.Online;
+		}
+		else
+		{
+			await CheckOllamaOnlineAsync();
+		}
+
 			await Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
 			var oldSelected = SelectedModel?.Name;
@@ -438,6 +471,74 @@ public class ViewModelBase : INotifyPropertyChanged
 			System.Diagnostics.Debug.WriteLine(Package == null ? "[OllamaAgent] Package is null" : "[OllamaAgent] Package is set");
 			VsShellUtilities.ShowToolsOptionsPage<OllamaAgentOptionsPage>();
 			System.Diagnostics.Debug.WriteLine("[OllamaAgent] ShowOptionPage called");
+		});
+
+	private ICommand _selectChatDirectoryCommand;
+	public ICommand SelectChatDirectoryCommand =>
+		_selectChatDirectoryCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
+		{
+			await Task.Yield();
+			await Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+			var oldFolder = ChatsDirectory;
+			using (var dialog = new System.Windows.Forms.FolderBrowserDialog())
+			{
+				dialog.Description = "Select Ollama Chats Folder";
+				dialog.SelectedPath = oldFolder;
+				if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+				{
+					var newFolder = dialog.SelectedPath;
+					if (!string.Equals(oldFolder, newFolder, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(oldFolder))
+					{
+						try
+						{
+							var oldFiles = System.IO.Directory.Exists(oldFolder)
+								? System.IO.Directory.GetFiles(oldFolder, "*.json")
+								: Array.Empty<string>();
+
+							if (oldFiles.Length > 0)
+							{
+								var result = System.Windows.Forms.MessageBox.Show(
+									$"You have {oldFiles.Length} chat thread(s) in your previous folder.\n\nDo you want to move them to the new folder?",
+									"Move Chat Threads",
+									System.Windows.Forms.MessageBoxButtons.YesNo,
+									System.Windows.Forms.MessageBoxIcon.Question);
+
+								if (result == System.Windows.Forms.DialogResult.Yes)
+								{
+									System.IO.Directory.CreateDirectory(newFolder);
+									foreach (var file in oldFiles)
+									{
+										var dest = System.IO.Path.Combine(newFolder, System.IO.Path.GetFileName(file));
+										System.IO.File.Copy(file, dest, overwrite: false);
+									}
+								}
+								else
+								{
+									var confirm = System.Windows.Forms.MessageBox.Show(
+										"Are you sure? If you continue, you will lose access to your previous chat threads in the old folder.",
+										"Confirm Folder Change",
+										System.Windows.Forms.MessageBoxButtons.YesNo,
+										System.Windows.Forms.MessageBoxIcon.Warning);
+
+									if (confirm != System.Windows.Forms.DialogResult.Yes)
+										return; // Cancel folder change
+								}
+							}
+						}
+						catch (Exception ex)
+						{
+							System.Windows.Forms.MessageBox.Show(
+								$"Error migrating chat threads: {ex.Message}",
+								"Migration Error",
+								System.Windows.Forms.MessageBoxButtons.OK,
+								System.Windows.Forms.MessageBoxIcon.Error);
+						}
+					}
+
+					ChatsDirectory = newFolder;
+				}
+			}
 		});
 
 	public event PropertyChangedEventHandler PropertyChanged;

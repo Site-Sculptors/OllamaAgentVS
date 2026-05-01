@@ -65,6 +65,24 @@
                 Content="Browse..."
                 IsEnabled="{Binding AgentEnabled}" />
         </StackPanel>
+        <TextBlock
+            Margin="0,8,0,0"
+            VerticalAlignment="Center"
+            Text="Chats Directory:" />
+        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+            <TextBox
+                Width="Auto"
+                MinWidth="200"
+                VerticalAlignment="Center"
+                IsReadOnly="True"
+                Text="{Binding ChatsDirectory}" />
+            <Button
+                Margin="8,0,0,0"
+                VerticalAlignment="Center"
+                Command="{Binding SelectChatDirectoryCommand}"
+                Content="Browse..."
+                IsEnabled="{Binding AgentEnabled}" />
+        </StackPanel>
 
         <StackPanel VerticalAlignment="Center" Orientation="Vertical">
             <TextBlock Margin="0,10,0,0" Text="Model" />

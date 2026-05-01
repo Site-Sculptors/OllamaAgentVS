@@ -79,6 +79,12 @@ namespace OllamaAgent.VSIX
 	  return Task.FromResult<object>(new ViewModels.ChatViewModel(chatService, agentService, modelService, this, modelStore));
    }, promote: true);
 
+	   // Register IChatThreadStore singleton
+	   this.AddService(typeof(Services.IChatThreadStore), (container, ct, serviceType) =>
+	   {
+		   return Task.FromResult<object>(new Services.ChatThreadStore());
+	   }, promote: true);
+
 	   // Registers VSCT commands at runtime
 	   await OllamaAgentCommand.InitializeAsync(this);
    }

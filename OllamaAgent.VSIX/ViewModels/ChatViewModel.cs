@@ -1,95 +1,125 @@
 using CommunityToolkit.Mvvm.Input;
 
 using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 
+using OllamaAgent.VSIX.Enums;
 using OllamaAgent.VSIX.Models;
+using OllamaAgent.VSIX.Services;
 
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Runtime.CompilerServices;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using System;
-using System.IO;
-using System.Security.Cryptography;
-using System.Text;
-using Newtonsoft.Json;
-using OllamaAgent.VSIX.Enums;
-using OllamaAgent.VSIX.Services;
 
 namespace OllamaAgent.VSIX.ViewModels
 {
+
 	public class ChatViewModel : ViewModelBase
 	{
 		private static readonly ObservableCollection<ChatMessage> _emptyMessages = new ObservableCollection<ChatMessage>();
 		private readonly IOllamaChatService _ollamaChatService;
+		private readonly IChatThreadStore _chatThreadStore;
 
-	   public ChatViewModel(IOllamaChatService ollamaChatService, IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package, IModelStore modelStore)
-		   : base(ollamaAgentService, ollamaModelService, package, modelStore)
-	   {
-		   Threads = new ObservableCollection<ChatThread?>();
-		   Threads.CollectionChanged += (s, e) => SaveThreads();
-		   _ = LoadThreadsAsync();
-		   _ollamaChatService = ollamaChatService;
-	   }
+		public ChatViewModel(IOllamaChatService ollamaChatService, IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package, IModelStore modelStore)
+			: base(ollamaAgentService, ollamaModelService, package, modelStore)
+		{
+			_ollamaChatService = ollamaChatService;
+			_chatThreadStore = (IChatThreadStore)((IServiceProvider)package).GetService(typeof(IChatThreadStore));
+			Threads = new ObservableCollection<ChatThread>();
+			_ = LoadThreadsForCurrentSolutionAsync();
+		}
+
 
 		private string GetSolutionPath()
 		{
-			// Try to get the solution path from the package (update as needed for your context)
 			try
 			{
-				var dte = (EnvDTE.DTE)Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(EnvDTE.DTE));
-				return dte?.Solution?.FullName ?? "default";
+				ThreadHelper.ThrowIfNotOnUIThread();
+				var solution = Microsoft.VisualStudio.Shell.Package.GetGlobalService(
+					typeof(SVsSolution)) as IVsSolution;
+
+				if (solution == null) return null;
+
+				solution.GetSolutionInfo(out string solutionDir, out string solutionFile, out string optsFile);
+				return solutionFile; // full path to the .sln file, null if no solution open
 			}
-			catch { return "default"; }
+			catch { return null; }
 		}
 
-		private string GetChatHistoryFilePath()
+		// Returns the best available solution path for thread association
+		private string GetBestSolutionPath()
 		{
-			var solutionPath = GetSolutionPath();
-			using (var sha = SHA256.Create())
-			{
-				var hash = BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(solutionPath))).Replace("-", "").ToLowerInvariant();
-				var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OllamaAgentVS", "ChatHistory");
-				Directory.CreateDirectory(dir);
-				return Path.Combine(dir, $"chat-{hash}.json");
-			}
+			var path = GetSolutionPath();
+			if (!string.IsNullOrWhiteSpace(path))
+				return path;
+
+			// Synthesize a default path (e.g., use a placeholder)
+			var defaultDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+			var defaultPath = System.IO.Path.Combine(defaultDir, "OllamaAgent", "chats", "default.sln");
+			if (System.IO.File.Exists(defaultPath))
+				return defaultPath;
+
+			// Fallback: global (null)
+			return null;
 		}
 
-		private async Task LoadThreadsAsync()
+		public ObservableCollection<ChatThread> Threads { get; }
+
+		private ChatThread _activeThread;
+		public ChatThread ActiveThread
 		{
-			var file = GetChatHistoryFilePath();
-			if (File.Exists(file))
+			get => _activeThread;
+			set
 			{
-				try
+				if (_activeThread != value)
 				{
-			   var json = await Task.Run(() => File.ReadAllText(file));
-					var threads = JsonConvert.DeserializeObject<ObservableCollection<ChatThread>>(json) ?? new ObservableCollection<ChatThread>();
-					
-					Threads.Clear();
-
-					foreach (var t in threads)
-						Threads.Add(t);
-
-					CurrentThread = Threads?.Count > 0 ? Threads[0] : null;
+					_activeThread = value;
+					OnPropertyChanged();
+					OnPropertyChanged(nameof(ChatHistory));
 				}
-				catch { Threads.Clear(); CreateAndSwitchToNewThread(); }
-			}
-			else
-			{
-				CreateAndSwitchToNewThread();
 			}
 		}
 
-		private void SaveThreads()
+		public ObservableCollection<ChatMessage> ChatHistory => ActiveThread?.Messages ?? _emptyMessages;
+
+		private async Task LoadThreadsForCurrentSolutionAsync()
 		{
-			try
-			{
-				var file = GetChatHistoryFilePath();
-				var json = JsonConvert.SerializeObject(Threads, Formatting.Indented);
-				File.WriteAllText(file, json);
-			}
-			catch { /* ignore errors */ }
+			await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+			var solutionPath = GetBestSolutionPath();
+			List<ChatThread> threads;
+			if (!string.IsNullOrWhiteSpace(solutionPath))
+				threads = await _chatThreadStore.LoadThreadsForSolutionAsync(solutionPath);
+			else
+				threads = await _chatThreadStore.LoadGlobalThreadsAsync();
+
+			Threads.Clear();
+			foreach (var t in threads.OrderByDescending(t => t.LastActivityAt))
+				Threads.Add(t);
+
+			// Use LINQ to find the thread for the current solution
+			var match = Threads.FirstOrDefault(t => t.SolutionPath == solutionPath);
+			if (match != null)
+				ActiveThread = match;
+			else if (Threads.Count > 0)
+				ActiveThread = Threads[0];
+			else
+				await CreateAndSwitchToNewThreadAsync();
+		}
+
+
+		private async Task SaveThreadAsync(ChatThread thread)
+		{
+			thread.LastActivityAt = DateTime.UtcNow;
+			await _chatThreadStore.SaveThreadAsync(thread);
+			// Resort threads
+			var sorted = Threads.OrderByDescending(t => t.LastActivityAt).ToList();
+			Threads.Clear();
+			foreach (var t in sorted)
+				Threads.Add(t);
 		}
 
 
@@ -108,25 +138,7 @@ namespace OllamaAgent.VSIX.ViewModels
 
 
 
-		public ObservableCollection<ChatThread?>? Threads { get; }
 
-		private ChatThread? _currentThread;
-		public ChatThread? CurrentThread
-		{
-			get => _currentThread;
-			set
-			{
-				if (_currentThread != value)
-				{
-					_currentThread = value;
-					OnPropertyChanged();
-					OnPropertyChanged(nameof(ChatHistory));
-				}
-			}
-		}
-
-
-		public ObservableCollection<ChatMessage> ChatHistory => CurrentThread?.Messages ?? _emptyMessages;
 
 
 		private bool _isHistoryVisible;
@@ -137,35 +149,31 @@ namespace OllamaAgent.VSIX.ViewModels
 		}
 
 		// SettingsCommand now inherited from ViewModelBase
+
 		private IAsyncRelayCommand _newThreadCommand;
 		public IAsyncRelayCommand NewThreadCommand =>
-			_newThreadCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
-		{
-			CreateAndSwitchToNewThread();
-			SaveThreads();
-			await Task.CompletedTask;
-		});
+			_newThreadCommand ??= new CommunityToolkit.Mvvm.Input.AsyncRelayCommand<object>(async (parameter) =>
+			{
+				await CreateAndSwitchToNewThreadAsync();
+			});
+
 
 		private IAsyncRelayCommand _deleteThreadCommand;
 		public IAsyncRelayCommand DeleteThreadCommand =>
-			_deleteThreadCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
-		{
-			if (CurrentThread != null)
+			_deleteThreadCommand ??= new CommunityToolkit.Mvvm.Input.AsyncRelayCommand<object>(async (parameter) =>
 			{
-				var idx = Threads.IndexOf(CurrentThread);
-				Threads.Remove(CurrentThread);
-				if (Threads.Count > 0)
+				if (ActiveThread != null)
 				{
-					CurrentThread = Threads[Math.Max(0, Math.Min(idx, Threads.Count - 1))];
+					var idx = Threads.IndexOf(ActiveThread);
+					var threadId = ActiveThread.Id;
+					Threads.Remove(ActiveThread);
+					await _chatThreadStore.DeleteThreadAsync(threadId);
+					if (Threads.Count > 0)
+						ActiveThread = Threads[Math.Max(0, Math.Min(idx, Threads.Count - 1))];
+					else
+						await CreateAndSwitchToNewThreadAsync();
 				}
-				else
-				{
-					CreateAndSwitchToNewThread();
-				}
-				SaveThreads();
-			}
-			await Task.CompletedTask;
-		});
+			});
 
 		private IRelayCommand _chatHistoryCommand;
 		public IRelayCommand ChatHistoryCommand =>
@@ -173,39 +181,48 @@ namespace OllamaAgent.VSIX.ViewModels
 
 		// OpenSettingsAsync now inherited from ViewModelBase
 
+
 		private IAsyncRelayCommand _sendCommand;
 		public IAsyncRelayCommand SendCommand =>
-			_sendCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
+			_sendCommand ??= new CommunityToolkit.Mvvm.Input.AsyncRelayCommand<object>(async (parameter) =>
+			{
+				var userInput = Input;
+				if (string.IsNullOrWhiteSpace(userInput) || SelectedModel == null || string.IsNullOrWhiteSpace(SelectedModel.Name) || ActiveThread == null)
+					return;
+
+				ActiveThread.Messages.Add(new ChatMessage { Role = ChatRole.User, Message = userInput });
+				Input = string.Empty;
+
+				var response = await _ollamaChatService.GenerateCompletionAsync(OllamaEndpoint, SelectedModel.Name, userInput);
+				if (!string.IsNullOrWhiteSpace(response))
+				{
+					ActiveThread.Messages.Add(new ChatMessage { Role = ChatRole.AI, Message = response });
+				}
+				else
+				{
+					ActiveThread.Messages.Add(new ChatMessage { Role = ChatRole.AI, Message = "No response from model." });
+				}
+				await SaveThreadAsync(ActiveThread);
+			});
+
+
+		private async Task CreateAndSwitchToNewThreadAsync()
 		{
-			var userInput = Input;
-		   if (string.IsNullOrWhiteSpace(userInput) || SelectedModel == null || string.IsNullOrWhiteSpace(SelectedModel.Name) || CurrentThread == null)
-			   return;
-
-		   CurrentThread.Messages.Add(new ChatMessage { Role = ChatRole.User, Message = userInput });
-		   Input = string.Empty;
-
-		   var response = await _ollamaChatService.GenerateCompletionAsync(OllamaEndpoint, SelectedModel.Name, userInput);
-		   if (!string.IsNullOrWhiteSpace(response))
-		   {
-			   CurrentThread.Messages.Add(new ChatMessage { Role = ChatRole.AI, Message = response });
-		   }
-		   else
-		   {
-			   CurrentThread.Messages.Add(new ChatMessage { Role = ChatRole.AI, Message = "No response from model." });
-		   }
-		   SaveThreads();
-		});
-
-		private void CreateAndSwitchToNewThread()
-		{
+			await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+			var solutionPath = GetBestSolutionPath();
 			var thread = new ChatThread
 			{
 				Id = Guid.NewGuid().ToString(),
-				Name = $"Thread {Threads.Count + 1}"
+				Name = $"Thread {Threads.Count + 1}",
+				SolutionPath = solutionPath,
+				ModelName = SelectedModel?.Name,
+				CreatedAt = DateTime.UtcNow,
+				LastActivityAt = DateTime.UtcNow,
+				IsAutoNamed = true
 			};
 			Threads.Add(thread);
-			CurrentThread = thread;
-			SaveThreads();
+			ActiveThread = thread;
+			await SaveThreadAsync(thread);
 		}
 	}
 }

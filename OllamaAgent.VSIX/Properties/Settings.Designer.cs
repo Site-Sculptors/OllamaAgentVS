@@ -70,5 +70,17 @@ namespace OllamaAgent.VSIX.Properties {
 				this["SelectedModel"] = value;
 			}
 		}
+
+		[global::System.Configuration.UserScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute("")]
+		public string ChatsDirectory {
+			get {
+				return ((string)(this["ChatsDirectory"]));
+			}
+			set {
+				this["ChatsDirectory"] = value;
+			}
+		}
 	}
 }
