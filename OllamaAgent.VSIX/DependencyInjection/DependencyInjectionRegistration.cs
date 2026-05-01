@@ -13,18 +13,25 @@ namespace OllamaAgent.VSIX.DependencyInjection;
 
 public static class DependencyInjectionRegistration
 {
+	/// <summary>
+	/// This file is only useful if you are using your own DI container (e.g., ServiceCollection) in your own code.
+	/// Visual Studio does NOT use this for service resolution. For VS integration, use AddService in your AsyncPackage.
+	/// </summary>
+
+	public static void ConfigureStores(IServiceCollection services)
+	{
+		services.AddSingleton<IModelStore, ModelStore>();
+	}
+
 	public static void ConfigureServices(IServiceCollection services)
 	{
-		// Register your services here
 		services.AddSingleton<IOllamaAgentService, OllamaAgentService>();
 		services.AddSingleton<IOllamaChatService, OllamaChatService>();
 		services.AddSingleton<IOllamaModelService, OllamaModelService>();
-		services.AddSingleton<IModelStore, ModelStore>();
 	}
+
 	public static void ConfigureViewModels(IServiceCollection services)
 	{
-		// Register your view models here
-
 		services.AddSingleton<ViewModelBase>();
 		services.AddSingleton<OllamaOptionsViewModel>();
 		services.AddSingleton<ChatViewModel>();

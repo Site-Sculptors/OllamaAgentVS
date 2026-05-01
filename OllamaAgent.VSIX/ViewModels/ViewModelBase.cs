@@ -24,8 +24,6 @@ using System.Security.Cryptography;
 using System.Threading;
 using System.Windows.Input;
 
-
-
 using OllamaAgent.VSIX.Models;
 
 public class ViewModelBase : INotifyPropertyChanged
@@ -38,36 +36,55 @@ public class ViewModelBase : INotifyPropertyChanged
 	public IModelStore ModelStore { get; }
 	private readonly CancellationTokenSource _monitorCts = new CancellationTokenSource();
 
-   public ViewModelBase(IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package, IModelStore modelStore)
-   {
-	   if (modelStore == null)
-		   throw new ArgumentNullException(nameof(modelStore), "ModelStore cannot be null. Check your DI or constructor calls.");
-	   OllamaAgentService = ollamaAgentService;
-	   OllamaModelService = ollamaModelService;
-	   Package = package;
-	   ModelStore = modelStore;
+	// FIX #2: Guard against concurrent SafeLoadAsync calls racing on the shared ModelStore
+	private int _isLoading = 0;
 
-	   LoadSettings();
-	   _ = StartServerMonitorAsync(_monitorCts.Token);
-
-	   StatusChanged += (s, status) =>
-	   {
-		   if (status == ServerStatus.Online)
-		   {
-			   _ = SafeLoadAsync();
-		   }
-	   };
-   }
-
-public ObservableCollection<LLM> Models
-{
-	get
+	public ViewModelBase(IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package, IModelStore modelStore)
 	{
-		if (ModelStore == null)
-			throw new InvalidOperationException("ModelStore is null. ViewModelBase must be constructed with a valid IModelStore.");
-		return ModelStore.Models;
+		if (modelStore == null)
+			throw new ArgumentNullException(nameof(modelStore), "ModelStore cannot be null. Check your DI or constructor calls.");
+		OllamaAgentService = ollamaAgentService;
+		OllamaModelService = ollamaModelService;
+		Package = package;
+		ModelStore = modelStore;
+
+		// FIX #1: Subscribe to ModelStore.PropertyChanged so that when any ViewModel
+		// mutates SelectedModel or Models on the shared store, all other ViewModels
+		// bound to those properties get notified and their UI updates too.
+		ModelStore.PropertyChanged += ModelStore_PropertyChanged;
+
+		LoadSettings();
+		_ = StartServerMonitorAsync(_monitorCts.Token);
+
+		StatusChanged += (s, status) =>
+		{
+			if (status == ServerStatus.Online)
+			{
+				_ = SafeLoadAsync();
+			}
+		};
 	}
-}
+
+	// FIX #1: Forward ModelStore property changes as this ViewModel's own
+	// PropertyChanged notifications so WPF bindings on Models and SelectedModel update.
+	private void ModelStore_PropertyChanged(object sender, PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName == nameof(IModelStore.SelectedModel))
+			OnPropertyChanged(nameof(SelectedModel));
+
+		if (e.PropertyName == nameof(IModelStore.Models))
+			OnPropertyChanged(nameof(Models));
+	}
+
+	public ObservableCollection<LLM> Models
+	{
+		get
+		{
+			if (ModelStore == null)
+				throw new InvalidOperationException("ModelStore is null. ViewModelBase must be constructed with a valid IModelStore.");
+			return ModelStore.Models;
+		}
+	}
 
 	public virtual LLM SelectedModel
 	{
@@ -77,11 +94,13 @@ public ObservableCollection<LLM> Models
 			if (ModelStore.SelectedModel != value)
 			{
 				ModelStore.SelectedModel = value;
-				OnPropertyChanged();
+				// NOTE: No OnPropertyChanged() call needed here.
+				// Setting ModelStore.SelectedModel fires ModelStore.PropertyChanged,
+				// which ModelStore_PropertyChanged catches and forwards for us.
+				// Calling it here too would cause a double-notification.
 			}
 		}
 	}
-
 
 	public void LoadSettings()
 	{
@@ -186,8 +205,8 @@ public ObservableCollection<LLM> Models
 
 	private static readonly HttpClient _httpClient = new HttpClient();
 
-	private const string OllamaProcessName = "ollama"; // Adjust if the executable name is different
-	private const string OllamaStartArguments = "serve"; // Adjust if arguments are different
+	private const string OllamaProcessName = "ollama";
+	private const string OllamaStartArguments = "serve";
 
 	public async Task CheckOllamaOnlineAsync(CancellationToken cancellationToken = default)
 	{
@@ -296,52 +315,51 @@ public ObservableCollection<LLM> Models
 		},
 		(parameter) => AgentEnabled);
 
-
 	private IAsyncRelayCommand _testConnectionCommand;
 	public IAsyncRelayCommand TestConnectionCommand =>
-	  _testConnectionCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
-   {
-	  if (!AgentEnabled)
-	  {
-		 TestConnectionMessage = "Agent is disabled.";
-		 Status = ServerStatus.Offline;
-		 return;
-	  }
-	  if (OllamaModelService == null)
-	  {
-		 TestConnectionMessage = "Model service is not available.";
-		 Status = ServerStatus.Offline;
-		 return;
-	  }
-	  if (string.IsNullOrWhiteSpace(OllamaEndpoint))
-	  {
-		 TestConnectionMessage = "Ollama endpoint is not set.";
-		 Status = ServerStatus.Offline;
-		 return;
-	  }
-	  try
-	  {
-		 var models = await OllamaModelService.GetModelsAsync(OllamaEndpoint);
-		 if (models.Count > 0)
-		 {
-			TestConnectionMessage = $"Connection OK. {models.Count} model(s) found.";
-			Status = ServerStatus.Online;
-			await SafeLoadAsync();
-		 }
-		 else
-		 {
-			Status = ServerStatus.Online;
-			TestConnectionMessage = "Connection OK, but no models found.";
-			await SafeLoadAsync();
-		 }
-	  }
-	  catch (Exception ex)
-	  {
-		 Status = ServerStatus.Offline;
-		 TestConnectionMessage = $"Connection failed: {ex.Message}";
-	  }
-   },
-   (parameter) => AgentEnabled);
+		_testConnectionCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
+		{
+			if (!AgentEnabled)
+			{
+				TestConnectionMessage = "Agent is disabled.";
+				Status = ServerStatus.Offline;
+				return;
+			}
+			if (OllamaModelService == null)
+			{
+				TestConnectionMessage = "Model service is not available.";
+				Status = ServerStatus.Offline;
+				return;
+			}
+			if (string.IsNullOrWhiteSpace(OllamaEndpoint))
+			{
+				TestConnectionMessage = "Ollama endpoint is not set.";
+				Status = ServerStatus.Offline;
+				return;
+			}
+			try
+			{
+				var models = await OllamaModelService.GetModelsAsync(OllamaEndpoint);
+				if (models.Count > 0)
+				{
+					TestConnectionMessage = $"Connection OK. {models.Count} model(s) found.";
+					Status = ServerStatus.Online;
+					await SafeLoadAsync();
+				}
+				else
+				{
+					Status = ServerStatus.Online;
+					TestConnectionMessage = "Connection OK, but no models found.";
+					await SafeLoadAsync();
+				}
+			}
+			catch (Exception ex)
+			{
+				Status = ServerStatus.Offline;
+				TestConnectionMessage = $"Connection failed: {ex.Message}";
+			}
+		},
+		(parameter) => AgentEnabled);
 
 	private IAsyncRelayCommand _refreshModelsCommand;
 	public IAsyncRelayCommand RefreshModelsCommand =>
@@ -355,46 +373,59 @@ public ObservableCollection<LLM> Models
 		},
 		(parameter) => AgentEnabled);
 
-
+	// FIX #2: Interlocked flag prevents two ViewModels both responding to StatusChanged
+	// at the same time and racing to Clear() + repopulate the shared Models collection.
 	public async Task SafeLoadAsync()
 	{
-		if (!AgentEnabled)
-		{
-			await Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-			Models.Clear();
-			return;
-		}
+		if (Interlocked.CompareExchange(ref _isLoading, 1, 0) != 0)
+			return; // Another ViewModel (or a re-entrant call) is already loading
+
 		try
 		{
+			if (!AgentEnabled)
+			{
+				await Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+				Models.Clear();
+				return;
+			}
+
 			if (OllamaModelService == null)
 			{
 				System.Diagnostics.Debug.WriteLine("OllamaModelService is null in SafeLoadAsync.");
 				return;
 			}
+
 			var models = await OllamaModelService.GetModelsAsync(OllamaEndpoint);
+
 			await Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-		   var oldSelected = SelectedModel?.Name;
-			  Models.Clear();
-		   foreach (var m in models)
-		   {
-			   if (!string.IsNullOrWhiteSpace(m))
-				   Models.Add(new LLM { Name = m });
-		   }
-		   if (!string.IsNullOrWhiteSpace(oldSelected))
-		   {
-			   var match = Models.FirstOrDefault(x => x.Name == oldSelected);
-			   if (match != null)
-				   SelectedModel = match;
-		   }
-		   else if (Models.Count > 0)
-		   {
-			   SelectedModel = Models[0];
-		   }
+
+			var oldSelected = SelectedModel?.Name;
+			Models.Clear();
+			foreach (var m in models)
+			{
+				if (!string.IsNullOrWhiteSpace(m))
+					Models.Add(new LLM { Name = m });
+			}
+
+			if (!string.IsNullOrWhiteSpace(oldSelected))
+			{
+				var match = Models.FirstOrDefault(x => x.Name == oldSelected);
+				if (match != null)
+					SelectedModel = match;
+			}
+			else if (Models.Count > 0)
+			{
+				SelectedModel = Models[0];
+			}
 		}
 		catch (Exception ex)
 		{
-			// Log or handle exception as needed
 			System.Diagnostics.Debug.WriteLine($"Error loading models: {ex.Message}");
+		}
+		finally
+		{
+			// Always release the lock, even if an exception occurred
+			Interlocked.Exchange(ref _isLoading, 0);
 		}
 	}
 
@@ -417,6 +448,9 @@ public ObservableCollection<LLM> Models
 	{
 		if (disposing)
 		{
+			// FIX #1: Unsubscribe to avoid memory leaks / phantom notifications
+			// after this ViewModel is disposed.
+			ModelStore.PropertyChanged -= ModelStore_PropertyChanged;
 			_monitorCts.Cancel();
 			_monitorCts.Dispose();
 		}

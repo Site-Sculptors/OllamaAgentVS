@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 
 using OllamaAgent.VSIX.ViewModels;
 
@@ -29,7 +30,10 @@ namespace OllamaAgent.VSIX
 		true)]
 
 	[Guid(PackageGuidString)]
-public sealed class OllamaAgentVSIXPackage : AsyncPackage
+	// Ensures package is loaded when a solution exists (so services are registered before options page is shown)
+	// You can change UIContextGuids80.SolutionExists to UIContextGuids80.NoSolution if you want always-on
+	[ProvideAutoLoad(UIContextGuids80.SolutionExists, PackageAutoLoadFlags.BackgroundLoad)]
+	public sealed class OllamaAgentVSIXPackage : AsyncPackage
 	{
 		public const string PackageGuidString =
 			"b94239c4-4aa9-4a3d-b23c-d720cfb207b1";
@@ -39,6 +43,12 @@ public sealed class OllamaAgentVSIXPackage : AsyncPackage
 	   IProgress<ServiceProgressData> progress)
    {
 	   await this.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+
+	   // Register ModelStore singleton
+	   this.AddService(typeof(Services.IModelStore), (container, cancellationToken, serviceType) =>
+	   {
+		   return Task.FromResult<object>(new Services.ModelStore());
+	   }, promote: true);
 
 	   // Register IOllamaAgentService singleton
 		 this.AddService(typeof(Services.IOllamaAgentService), (container, cancellationToken, serviceType) =>
@@ -58,11 +68,6 @@ public sealed class OllamaAgentVSIXPackage : AsyncPackage
 		   return Task.FromResult<object>(new Services.OllamaChatService());
 	   }, promote: true);
 
-	   // Register ModelStore singleton
-	   this.AddService(typeof(Services.IModelStore), (container, cancellationToken, serviceType) =>
-	   {
-		   return Task.FromResult<object>(new Services.ModelStore());
-	   }, promote: true);
 
 	  // Register ChatViewModel singleton
    this.AddService(typeof(ViewModels.ChatViewModel), (container, cancellationToken, serviceType) =>
