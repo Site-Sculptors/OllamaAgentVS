@@ -15,8 +15,6 @@ namespace OllamaAgent.VSIX.ViewModels
 {
 	public class OllamaOptionsViewModel : ViewModelBase
 	{
-
-
 		public OllamaOptionsViewModel(IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package)
 			: base(ollamaAgentService, ollamaModelService, package)
 		{

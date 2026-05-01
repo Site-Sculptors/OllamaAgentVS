@@ -44,7 +44,7 @@
                 IsEnabled="{Binding AgentEnabled}" />
         </StackPanel>
         <TextBlock Text="Ollama Endpoint" />
-        <TextBox Text="{Binding Endpoint, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding AgentEnabled}" />
+        <TextBox Text="{Binding OllamaEndpoint, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding AgentEnabled}" />
 
         <!--  Models Directory Picker  -->
         <TextBlock Margin="0,8,0,0" VerticalAlignment="Center" Text="Models Directory:" />

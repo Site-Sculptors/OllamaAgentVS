@@ -25,7 +25,7 @@ public static class DependencyInjectionRegistration
 		// Register your view models here
 
 		services.AddSingleton<ViewModelBase>();
-		services.AddTransient<OllamaOptionsViewModel>();
+		services.AddSingleton<OllamaOptionsViewModel>();
 		services.AddTransient<ChatViewModel>();
 	}
 }

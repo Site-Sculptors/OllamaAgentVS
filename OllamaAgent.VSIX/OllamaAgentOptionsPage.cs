@@ -14,7 +14,7 @@ namespace OllamaAgent.VSIX
 	{
 		private OllamaOptionsControl _control;
 
-		public OllamaOptionsViewModel ViewModel => _control?.ViewModel;
+		private OllamaOptionsViewModel _viewModel;
 
 		protected override UIElement Child
 		{
@@ -22,8 +22,11 @@ namespace OllamaAgent.VSIX
 			{
 				if (_control == null)
 				{
-					var viewModel = (OllamaOptionsViewModel)Package.GetGlobalService(typeof(OllamaOptionsViewModel));
-					_control = new OllamaOptionsControl(viewModel);
+					var agentService = (IOllamaAgentService)Package.GetGlobalService(typeof(IOllamaAgentService));
+					var modelService = (IOllamaModelService)Package.GetGlobalService(typeof(IOllamaModelService));
+					_viewModel = new OllamaOptionsViewModel(agentService, modelService, null);
+					System.Diagnostics.Debug.WriteLine($"[OptionsPage] Manually constructed ViewModel: {_viewModel.GetType().FullName}, HashCode: {_viewModel.GetHashCode()}");
+					_control = new OllamaOptionsControl(_viewModel);
 				}
 
 				return _control;
@@ -34,10 +37,11 @@ namespace OllamaAgent.VSIX
 		{
 			base.OnActivate(e);
 
-			if (ViewModel != null)
+			if (_viewModel != null)
 			{
-				ViewModel.LoadSettings();
-				_ = ViewModel.SafeLoadAsync(); // fire-and-forget, exceptions are handled internally
+				_viewModel.LoadSettings();
+				System.Diagnostics.Debug.WriteLine($"[OptionsPage] After LoadSettings: ModelsDirectory={_viewModel.ModelsDirectory}, Endpoint={_viewModel.OllamaEndpoint}, Models.Count={_viewModel.Models?.Count}");
+				_ = _viewModel.SafeLoadAsync(); // fire-and-forget, exceptions are handled internally
 			}
 		}
 	}
