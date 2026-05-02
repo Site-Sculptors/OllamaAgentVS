@@ -126,38 +126,38 @@ Ordered from easiest/highest-impact to hardest. Give this file to Copilot one se
   - Button to manually trigger a full re-index
   - Show index status: file count, last indexed time, index size on disk
 
-- [ ] **Streaming responses**
+- [x] **Streaming responses**
   - Switch from awaiting the full Ollama response to consuming the NDJSON stream from `/api/chat`
   - Append tokens to the chat message as they arrive
   - Show a blinking cursor or typing indicator while streaming
   - Add a Stop button that aborts the HTTP request mid-stream
 
-- [ ] **"Ask Ollama" right-click context menu**
+- [x] **"Ask Ollama" right-click context menu**
   - Register a command in the editor context menu: `Ask Ollama about this`
   - Opens the chat window (if not already open) and pre-fills it with the selection and a `/explain` prompt
 
-- [ ] **`@solution` token — solution file tree**
+- [x] **`@solution` token — solution file tree**
   - Detect `@solution` in the user's message
   - Walk the solution hierarchy via DTE/IVsSolution and build a compact file tree string
   - Include project names, folder structure, and file names (not contents)
   - Append the tree to the prompt so the model knows the project layout
 
-- [ ] **`@solution` with file contents (selective)**
+- [x] **`@solution` with file contents (selective)**
   - When `@solution` is used, also attach contents of small/relevant files (e.g. `.csproj`, `Program.cs`, interfaces)
   - Cap total context size to avoid overwhelming the model's context window
   - Prioritize files related to keywords in the user's message
 
-- [ ] **Active file symbol list**
+- [x] **Active file symbol list**
   - Use Roslyn or the VS language service to extract class/method names from the active file
   - Append a compact symbol summary to the system prompt (e.g. `// Classes: ChatViewModel, ViewModelBase // Methods: LoadAsync, SendMessage`)
   - Helps the model understand structure without sending the entire file
 
-- [ ] **Error list context (`/fix` enhancement)**
+- [x] **Error list context (`/fix` enhancement)**
   - When `/fix` is used with no selection, check the VS Error List for errors in the active file
   - Attach the error messages and line numbers as additional context
   - Mirrors Copilot's "Fix using Copilot" smart action behavior
 
-- [ ] **Output window context (`#output` token)**
+- [x] **Output window context (`#output` token)**
   - Detect `#output` in the user's message
   - Capture the current content of the Build or Debug output pane
   - Attach it to the prompt — useful for "why did my build fail?" queries
