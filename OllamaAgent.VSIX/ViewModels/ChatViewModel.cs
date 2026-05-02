@@ -355,29 +355,66 @@ namespace OllamaAgent.VSIX.ViewModels
 					var conversation = string.Join("\n", ActiveThread.Messages.Select(m => $"{m.Role}: {m.Message}"));
 					prompt += $"Given the following conversation, reply as the assistant. Also, suggest a concise thread title (max 5 words) that summarizes the conversation so far. Format your response as:\nMessage: <your reply>\nTitle: <suggested title>\n\nConversation:\n{conversation}\nUser: {userInput}";
 
-					var response = await _ollamaChatService.GenerateCompletionAsync(OllamaEndpoint, SelectedChatModel.Name, prompt);
-					string aiMessage = null;
-					string newTitle = null;
-					if (!string.IsNullOrWhiteSpace(response))
-					{
-						var lines = response.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-						foreach (var line in lines)
-						{
-							if (line.StartsWith("Message:", StringComparison.OrdinalIgnoreCase))
-								aiMessage = line.Substring("Message:".Length).Trim();
-							else if (line.StartsWith("Title:", StringComparison.OrdinalIgnoreCase))
-								newTitle = line.Substring("Title:".Length).Trim();
-						}
-					}
+					// --- Streaming response ---
+					_isStreaming = true;
+					OnPropertyChanged(nameof(IsStreaming));
+					_stopStreamingCts = new System.Threading.CancellationTokenSource();
+					var userMsg = ActiveThread.Messages.LastOrDefault(m => m.Role == ChatRole.User);
+					var aiMsg = new ChatMessage { Role = ChatRole.AI, Message = string.Empty };
+					ActiveThread.Messages.Add(aiMsg);
+					OnPropertyChanged(nameof(ChatHistory));
 
-					if (!string.IsNullOrWhiteSpace(aiMessage))
+					// Build chat history for Ollama
+					var chatMessages = ActiveThread.Messages
+						.Select(m => (role: m.Role == ChatRole.User ? "user" : "assistant", content: m.Message))
+						.ToList();
+
+					// Remove the last AI message (the one we're about to stream)
+					if (chatMessages.Count > 0 && chatMessages.Last().role == "assistant")
+						chatMessages.RemoveAt(chatMessages.Count - 1);
+
+					// Add the new user message
+					chatMessages.Add(("user", userInput));
+
+					// System prompt as a system message if present
+					if (!string.IsNullOrEmpty(prompt))
+						chatMessages.Insert(0, ("system", prompt));
+
+					// Streaming callback
+					var sb = new System.Text.StringBuilder();
+					await Task.Run(async () =>
 					{
-						ActiveThread.Messages.Add(new ChatMessage { Role = ChatRole.AI, Message = aiMessage });
-					}
-					else
-					{
-						ActiveThread.Messages.Add(new ChatMessage { Role = ChatRole.AI, Message = "No response from model." });
-					}
+						await _ollamaChatService.StreamChatAsync(
+							OllamaEndpoint,
+							SelectedChatModel.Name,
+							chatMessages,
+							fragment =>
+							{
+								sb.Append(fragment);
+								aiMsg.Message = sb.ToString();
+								OnPropertyChanged(nameof(ChatHistory));
+								OnPropertyChanged(nameof(IsStreaming));
+							},
+							_stopStreamingCts.Token
+						);
+					});
+					_isStreaming = false;
+					OnPropertyChanged(nameof(IsStreaming));
+					await SaveThreadAsync(ActiveThread);
+
+		private bool _isStreaming = false;
+		public bool IsStreaming
+		{
+			get => _isStreaming;
+		}
+
+		private System.Threading.CancellationTokenSource _stopStreamingCts;
+		private IRelayCommand _stopStreamingCommand;
+		public IRelayCommand StopStreamingCommand =>
+			_stopStreamingCommand ??= new CommunityToolkit.Mvvm.Input.RelayCommand(() =>
+			{
+				_stopStreamingCts?.Cancel();
+			}, () => IsStreaming);
 
 					if (ActiveThread.IsAutoNamed && !string.IsNullOrWhiteSpace(newTitle))
 					{

@@ -327,8 +327,31 @@
                     Content="&#xf1d8;"
                     FontFamily="{StaticResource FASolid}"
                     Style="{StaticResource ToolbarIconButtonStyle}"
-                    ToolTip="Send" />
+                    ToolTip="Send"
+                    Visibility="{Binding IsStreaming, Converter={StaticResource InverseBoolToVis}}" />
+
+                <!--  Stop Streaming Button  -->
+                <Button
+                    Grid.Row="1"
+                    Grid.Column="4"
+                    Margin="5"
+                    Command="{Binding StopStreamingCommand}"
+                    Content="&#xf04d;"
+                    FontFamily="{StaticResource FASolid}"
+                    Style="{StaticResource ToolbarIconButtonStyle}"
+                    ToolTip="Stop"
+                    Visibility="{Binding IsStreaming, Converter={StaticResource BoolToVis}}" />
             </Grid>
         </Border>
+
+    <!-- Typing Indicator / Blinking Cursor -->
+    <TextBlock
+        Grid.Row="4"
+        Margin="10,0,0,10"
+        FontStyle="Italic"
+        FontSize="13"
+        Foreground="Gray"
+        Visibility="{Binding IsStreaming, Converter={StaticResource BoolToVis}}"
+        Text="Ollama is typing... |" />
     </Grid>
 </UserControl>

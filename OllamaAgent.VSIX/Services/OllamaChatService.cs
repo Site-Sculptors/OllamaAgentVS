@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 
 namespace OllamaAgent.VSIX.Services;
 
+
 public class OllamaChatService : IOllamaChatService
 {
 	private static readonly HttpClient _httpClient = new HttpClient();
@@ -62,4 +63,73 @@ public class OllamaChatService : IOllamaChatService
 		}
 		return null;
 	}
+
+	public async Task StreamChatAsync(
+		string endpoint,
+		string model,
+		IEnumerable<(string role, string content)> messages,
+		Action<string> onMessageFragment,
+		CancellationToken token = default)
+	{
+		if (string.IsNullOrWhiteSpace(endpoint))
+			throw new ArgumentException("Ollama endpoint is required.", nameof(endpoint));
+		if (string.IsNullOrWhiteSpace(model))
+			throw new ArgumentException("Model is required.", nameof(model));
+		if (messages == null)
+			throw new ArgumentException("Messages are required.", nameof(messages));
+
+		var url = endpoint.TrimEnd('/') + "/api/chat";
+		var payload = new
+		{
+			model = model,
+			messages = messages.Select(m => new { role = m.role, content = m.content }).ToArray(),
+			stream = true
+		};
+		var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+
+		try
+		{
+			using (var response = await _httpClient.PostAsync(url, content, HttpCompletionOption.ResponseHeadersRead, token))
+			{
+				response.EnsureSuccessStatusCode();
+				using (var stream = await response.Content.ReadAsStreamAsync(token))
+				using (var reader = new System.IO.StreamReader(stream))
+				{
+					string line;
+					while ((line = await reader.ReadLineAsync()) != null)
+					{
+						if (token.IsCancellationRequested)
+							break;
+						if (string.IsNullOrWhiteSpace(line))
+							continue;
+						try
+						{
+							using (var doc = JsonDocument.Parse(line))
+							{
+								if (doc.RootElement.TryGetProperty("message", out var msgElem))
+								{
+									var contentFrag = msgElem.GetProperty("content").GetString();
+									if (!string.IsNullOrEmpty(contentFrag))
+										onMessageFragment(contentFrag);
+								}
+							}
+						}
+						catch (Exception ex)
+						{
+							System.Diagnostics.Debug.WriteLine($"[OllamaChatService] NDJSON parse error: {ex.Message}\n{line}");
+						}
+					}
+				}
+			}
+		}
+		catch (OperationCanceledException)
+		{
+			// Expected if user cancels
+		}
+		catch (Exception ex)
+		{
+			System.Diagnostics.Debug.WriteLine($"OllamaChatService streaming exception: {ex}");
+		}
+	}
+}
 }
