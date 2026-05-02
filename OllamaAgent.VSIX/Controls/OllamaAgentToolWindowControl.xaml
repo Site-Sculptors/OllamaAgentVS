@@ -66,6 +66,13 @@
             TextWrapping="NoWrap"
             ToolTip="{Binding ActiveThread.Name}" />
 
+            <!-- Custom Instructions Indicator -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,10,0">
+                <Border Background="#FFE6C200" CornerRadius="4" Padding="4,1" Visibility="{Binding CustomInstructionsActive, Converter={StaticResource BoolToVis}}" ToolTip="Custom instructions are active and prepended to every prompt.">
+                    <TextBlock Text="Custom Instructions" FontSize="11" Foreground="Black" FontWeight="SemiBold"/>
+                </Border>
+            </StackPanel>
+
         <!--  Toolbar Row  -->
         <Grid Grid.Row="1" Margin="10">
             <Grid.ColumnDefinitions>
@@ -220,23 +227,52 @@
                 </Grid.ColumnDefinitions>
 
                 <!--  Text Input Box  -->
-                <TextBox
-                    x:Name="InputBox"
-                    Grid.Row="0"
-                    Grid.Column="0"
-                    Grid.ColumnSpan="4"
-                    MinHeight="60"
-                    Margin="10"
-                    watermark:WatermarkService.Watermark="Chat with Ollama..."
-                    watermark:WatermarkService.WatermarkFontSize="12"
-                    AcceptsReturn="True"
-                    Background="{DynamicResource ColorBackgroundInput}"
-                    BorderThickness="0"
-                    FontSize="12"
-                    Foreground="{DynamicResource ColorTextInput}"
-                    PreviewKeyDown="InputBox_PreviewKeyDown"
-                    Text="{Binding Input, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                    TextWrapping="Wrap" />
+                <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="4">
+                    <TextBox
+                        x:Name="InputBox"
+                        MinHeight="60"
+                        Margin="10"
+                        watermark:WatermarkService.Watermark="Chat with Ollama..."
+                        watermark:WatermarkService.WatermarkFontSize="12"
+                        AcceptsReturn="True"
+                        Background="{DynamicResource ColorBackgroundInput}"
+                        BorderThickness="0"
+                        FontSize="12"
+                        Foreground="{DynamicResource ColorTextInput}"
+                        PreviewKeyDown="InputBox_PreviewKeyDown"
+                        PreviewKeyUp="InputBox_PreviewKeyUp"
+                        Text="{Binding Input, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        TextWrapping="Wrap" />
+                    <Popup x:Name="SlashCommandPopup"
+                           PlacementTarget="{Binding ElementName=InputBox}"
+                           Placement="Top"
+                           StaysOpen="False"
+                           AllowsTransparency="True"
+                           IsOpen="{Binding IsSlashCommandPopupOpen, Mode=TwoWay}"
+                           Focusable="False">
+                        <Border Background="{DynamicResource ColorBackgroundInput}" BorderBrush="Gray" BorderThickness="1" CornerRadius="4">
+                            <ListBox x:Name="SlashCommandListBox"
+                                     ItemsSource="{Binding SlashCommandSuggestions}"
+                                     SelectedIndex="{Binding SlashCommandSelectedIndex, Mode=TwoWay}"
+                                     MinWidth="220"
+                                     MaxHeight="160"
+                                     KeyboardNavigation.TabNavigation="Continue"
+                                     KeyboardNavigation.DirectionalNavigation="Continue"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     Foreground="{DynamicResource ColorTextInput}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Vertical" Margin="4,2">
+                                            <TextBlock Text="{Binding Command}" FontWeight="Bold" />
+                                            <TextBlock Text="{Binding Description}" FontSize="11" Foreground="Gray" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Border>
+                    </Popup>
+                </Grid>
 
                 <!--  Model Selector  -->
                 <ComboBox
@@ -251,10 +287,30 @@
                     ItemsSource="{Binding Models}"
                     SelectedItem="{Binding SelectedChatModel, Mode=TwoWay}" />
 
-                <!--  Action Buttons  -->
+                <!-- Attach File Button -->
                 <Button
                     Grid.Row="1"
-                    Grid.Column="2"
+                    Grid.Column="1"
+                    Margin="5"
+                    Command="{Binding AttachFileCommand}"
+                    Content="&#xf0c6;"
+                    FontFamily="{StaticResource FASolid}"
+                    Style="{StaticResource ToolbarIconButtonStyle}"
+                    ToolTip="Attach File" />
+
+                <!-- Show attached file chip/tag if present -->
+                <Border Grid.Row="1" Grid.Column="2" Margin="5,0,0,0" Padding="4,2" Background="#FFE0E0E0" CornerRadius="6" Visibility="{Binding AttachedFileName, Converter={StaticResource BoolToVis}}">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="📎" Margin="0,0,4,0"/>
+                        <TextBlock Text="{Binding AttachedFileName}" FontWeight="Bold"/>
+                        <Button Command="{Binding ClearAttachmentCommand}" Content="×" Width="18" Height="18" Margin="4,0,0,0" Padding="0" VerticalAlignment="Center" Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="Remove attachment" />
+                    </StackPanel>
+                </Border>
+
+                <!--  Tools Button  -->
+                <Button
+                    Grid.Row="1"
+                    Grid.Column="3"
                     Margin="5"
                     Command="{Binding ToolsCommand}"
                     Content="&#xf0ad;"
@@ -262,9 +318,10 @@
                     Style="{StaticResource ToolbarIconButtonStyle}"
                     ToolTip="Tools" />
 
+                <!--  Send Button  -->
                 <Button
                     Grid.Row="1"
-                    Grid.Column="3"
+                    Grid.Column="4"
                     Margin="5"
                     Command="{Binding SendCommand}"
                     Content="&#xf1d8;"

@@ -1,3 +1,81 @@
+				// Attachment state
+				private string _attachedFileName;
+				public string AttachedFileName
+				{
+					get => _attachedFileName;
+					set { _attachedFileName = value; OnPropertyChanged(); }
+				}
+
+				private string _attachedFilePath;
+				public string AttachedFilePath
+				{
+					get => _attachedFilePath;
+					set { _attachedFilePath = value; OnPropertyChanged(); }
+				}
+
+				private string _attachedFileContent;
+				public string AttachedFileContent
+				{
+					get => _attachedFileContent;
+					set { _attachedFileContent = value; OnPropertyChanged(); }
+				}
+
+				// Attach file command
+				private IRelayCommand _attachFileCommand;
+				public IRelayCommand AttachFileCommand =>
+					_attachFileCommand ??= new CommunityToolkit.Mvvm.Input.RelayCommand(() =>
+					{
+						// Find the tool window control to show dialog
+						var window = System.Windows.Application.Current?.Windows
+							.OfType<System.Windows.Window>()
+							.SelectMany(w => w.OwnedWindows.Cast<System.Windows.Window>().Concat(new[] { w }))
+							.SelectMany(w => w.FindVisualChildren<OllamaAgent.VSIX.Controls.OllamaAgentToolWindowControl>())
+							.FirstOrDefault();
+						var solutionDir = System.IO.Path.GetDirectoryName(GetBestSolutionPath() ?? "");
+						window?.ShowAttachFileDialog(solutionDir, async (filePath) =>
+						{
+							try
+							{
+								AttachedFileName = System.IO.Path.GetFileName(filePath);
+								AttachedFilePath = filePath;
+								AttachedFileContent = await System.IO.File.ReadAllTextAsync(filePath);
+							}
+							catch (Exception ex)
+							{
+								System.Windows.MessageBox.Show($"Failed to read file: {ex.Message}", "Attach File Error");
+								AttachedFileName = null;
+								AttachedFilePath = null;
+								AttachedFileContent = null;
+							}
+						});
+					});
+
+				// Clear attachment command
+				private IRelayCommand _clearAttachmentCommand;
+				public IRelayCommand ClearAttachmentCommand =>
+					_clearAttachmentCommand ??= new CommunityToolkit.Mvvm.Input.RelayCommand(() =>
+					{
+						AttachedFileName = null;
+						AttachedFilePath = null;
+						AttachedFileContent = null;
+					});
+		// Slash command autocomplete state for binding
+		private ObservableCollection<OllamaAgent.VSIX.Models.SlashCommand> _slashCommandSuggestions = new ObservableCollection<OllamaAgent.VSIX.Models.SlashCommand>();
+		public ObservableCollection<OllamaAgent.VSIX.Models.SlashCommand> SlashCommandSuggestions => _slashCommandSuggestions;
+
+		private bool _isSlashCommandPopupOpen;
+		public bool IsSlashCommandPopupOpen
+		{
+			get => _isSlashCommandPopupOpen;
+			set { _isSlashCommandPopupOpen = value; OnPropertyChanged(); }
+		}
+
+		private int _slashCommandSelectedIndex;
+		public int SlashCommandSelectedIndex
+		{
+			get => _slashCommandSelectedIndex;
+			set { _slashCommandSelectedIndex = value; OnPropertyChanged(); }
+		}
 using CommunityToolkit.Mvvm.Input;
 
 using Microsoft.VisualStudio.Shell;
@@ -24,11 +102,19 @@ namespace OllamaAgent.VSIX.ViewModels
 		private readonly IOllamaChatService _ollamaChatService;
 		private readonly IChatThreadStore _chatThreadStore;
 
-		public ChatViewModel(IOllamaChatService ollamaChatService, IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package, IModelStore modelStore)
+		private readonly IEditorContextService _editorContextService;
+		private readonly Services.CustomInstructionsService _customInstructionsService;
+
+		public bool CustomInstructionsActive => _customInstructionsService?.IsActive == true;
+		public string CustomInstructionsPath => _customInstructionsService?.IsActive == true ? _customInstructionsService.Instructions : null;
+
+		public ChatViewModel(IOllamaChatService ollamaChatService, IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package, IModelStore modelStore, IEditorContextService editorContextService)
 			: base(ollamaAgentService, ollamaModelService, package, modelStore)
 		{
 			_ollamaChatService = ollamaChatService;
 			_chatThreadStore = (IChatThreadStore)((IServiceProvider)package).GetService(typeof(IChatThreadStore));
+			_editorContextService = editorContextService;
+			_customInstructionsService = (Services.CustomInstructionsService)((IServiceProvider)package).GetService(typeof(Services.CustomInstructionsService));
 			Threads = new ObservableCollection<ChatThread>();
 			_ = LoadThreadsForCurrentSolutionAsync();
 		}
@@ -208,55 +294,100 @@ namespace OllamaAgent.VSIX.ViewModels
 		public IAsyncRelayCommand SendCommand =>
 			_sendCommand ??= new CommunityToolkit.Mvvm.Input.AsyncRelayCommand<object>(async (parameter) =>
 			{
-				var userInput = Input;
-				if (string.IsNullOrWhiteSpace(userInput) || SelectedChatModel == null || string.IsNullOrWhiteSpace(SelectedChatModel.Name) || ActiveThread == null)
-					return;
+					var userInput = Input;
+					if (string.IsNullOrWhiteSpace(userInput) || SelectedChatModel == null || string.IsNullOrWhiteSpace(SelectedChatModel.Name) || ActiveThread == null)
+						return;
 
-				ActiveThread.Messages.Add(new ChatMessage { Role = ChatRole.User, Message = userInput });
-				Input = string.Empty;
-
-				// Build conversation context
-				var conversation = string.Join("\n", ActiveThread.Messages.Select(m => $"{m.Role}: {m.Message}"));
-				var prompt = $"Given the following conversation, reply as the assistant. Also, suggest a concise thread title (max 5 words) that summarizes the conversation so far. Format your response as:\nMessage: <your reply>\nTitle: <suggested title>\n\nConversation:\n{conversation}\nUser: {userInput}";
-
-				var response = await _ollamaChatService.GenerateCompletionAsync(OllamaEndpoint, SelectedChatModel.Name, prompt);
-				string aiMessage = null;
-				string newTitle = null;
-				if (!string.IsNullOrWhiteSpace(response))
-				{
-					// Parse response for Message: ... and Title: ...
-					var lines = response.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-					foreach (var line in lines)
+					// --- Slash Command Detection ---
+					string systemInstruction = null;
+					string commandUsed = null;
+					var trimmedInput = userInput.TrimStart();
+					var slash = OllamaAgent.VSIX.Models.SlashCommand.All.FirstOrDefault(cmd => trimmedInput.StartsWith(cmd.Command, StringComparison.OrdinalIgnoreCase));
+					if (slash != null)
 					{
-						if (line.StartsWith("Message:", StringComparison.OrdinalIgnoreCase))
-							aiMessage = line.Substring("Message:".Length).Trim();
-						else if (line.StartsWith("Title:", StringComparison.OrdinalIgnoreCase))
-							newTitle = line.Substring("Title:".Length).Trim();
+						systemInstruction = slash.SystemInstruction;
+						commandUsed = slash.Command;
+						// Remove the command from the input for the user message
+						userInput = userInput.Substring(commandUsed.Length).TrimStart();
 					}
-				}
 
-				if (!string.IsNullOrWhiteSpace(aiMessage))
-				{
-					ActiveThread.Messages.Add(new ChatMessage { Role = ChatRole.AI, Message = aiMessage });
-				}
-				else
-				{
-					ActiveThread.Messages.Add(new ChatMessage { Role = ChatRole.AI, Message = "No response from model." });
-				}
+					// --- Context Injection Phase 1 ---
+					var (fileName, language, fileContent, selection) = await _editorContextService.GetActiveDocumentContextAsync();
 
 
+					// --- Context Construction ---
+					string contextBlock = string.Empty;
+					if (!string.IsNullOrEmpty(selection))
+					{
+						contextBlock += $"// Selected code (from {fileName}):\n{selection}\n";
+					}
+					if (!string.IsNullOrEmpty(fileContent))
+					{
+						contextBlock += $"// Active file: {fileName} [{language}]\n{fileContent}\n";
+					}
+					// Inject attached file content if present
+					if (!string.IsNullOrEmpty(AttachedFileName) && !string.IsNullOrEmpty(AttachedFileContent))
+					{
+						contextBlock += $"// Attached file: {AttachedFileName}\n{AttachedFileContent}\n";
+					}
+					// Clear attachment after sending
+					AttachedFileName = null;
+					AttachedFilePath = null;
+					AttachedFileContent = null;
 
+					// --- System Instruction Prepending ---
+					string prompt = string.Empty;
+					// 1. Custom instructions (if present)
+					if (_customInstructionsService != null && _customInstructionsService.IsActive)
+					{
+						prompt += $"[SYSTEM]\n{_customInstructionsService.Instructions}\n";
+					}
+					// 2. Slash command transformation
+					if (!string.IsNullOrEmpty(systemInstruction))
+					{
+						prompt += $"[SYSTEM]\n{systemInstruction}\n";
+					}
+					prompt += contextBlock;
 
-				// Update thread name if auto-named and model returned a title
-				if (ActiveThread.IsAutoNamed && !string.IsNullOrWhiteSpace(newTitle))
-				{
-					ActiveThread.Name = newTitle;
-					ActiveThread.IsAutoNamed = false;
-					OnPropertyChanged(nameof(ActiveThread));
-					OnPropertyChanged(nameof(Threads));
-				}
+					// --- Conversation Context ---
+					ActiveThread.Messages.Add(new ChatMessage { Role = ChatRole.User, Message = (commandUsed != null ? commandUsed + " " : "") + userInput });
+					Input = string.Empty;
+					var conversation = string.Join("\n", ActiveThread.Messages.Select(m => $"{m.Role}: {m.Message}"));
+					prompt += $"Given the following conversation, reply as the assistant. Also, suggest a concise thread title (max 5 words) that summarizes the conversation so far. Format your response as:\nMessage: <your reply>\nTitle: <suggested title>\n\nConversation:\n{conversation}\nUser: {userInput}";
 
-				await SaveThreadAsync(ActiveThread);
+					var response = await _ollamaChatService.GenerateCompletionAsync(OllamaEndpoint, SelectedChatModel.Name, prompt);
+					string aiMessage = null;
+					string newTitle = null;
+					if (!string.IsNullOrWhiteSpace(response))
+					{
+						var lines = response.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+						foreach (var line in lines)
+						{
+							if (line.StartsWith("Message:", StringComparison.OrdinalIgnoreCase))
+								aiMessage = line.Substring("Message:".Length).Trim();
+							else if (line.StartsWith("Title:", StringComparison.OrdinalIgnoreCase))
+								newTitle = line.Substring("Title:".Length).Trim();
+						}
+					}
+
+					if (!string.IsNullOrWhiteSpace(aiMessage))
+					{
+						ActiveThread.Messages.Add(new ChatMessage { Role = ChatRole.AI, Message = aiMessage });
+					}
+					else
+					{
+						ActiveThread.Messages.Add(new ChatMessage { Role = ChatRole.AI, Message = "No response from model." });
+					}
+
+					if (ActiveThread.IsAutoNamed && !string.IsNullOrWhiteSpace(newTitle))
+					{
+						ActiveThread.Name = newTitle;
+						ActiveThread.IsAutoNamed = false;
+						OnPropertyChanged(nameof(ActiveThread));
+						OnPropertyChanged(nameof(Threads));
+					}
+
+					await SaveThreadAsync(ActiveThread);
 			});
 
 

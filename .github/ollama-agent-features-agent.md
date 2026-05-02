@@ -6,58 +6,58 @@ Ordered from easiest/highest-impact to hardest. Give this file to Copilot one se
 
 ## Phase 1 — Context Basics (Low effort, massive UX improvement)
 
-- [ ] **Inject active file into every message**
-  - Get the active document via `DTE.ActiveDocument` or `ITextEditorFactoryService`
-  - Prepend file name, language, and full contents to the system prompt on every request
-  - If file is too large (>500 lines), include only the visible portion
+- [x] **Inject active file into every message**
+- Get the active document via `DTE.ActiveDocument` or `ITextEditorFactoryService`
+- Prepend file name, language, and full contents to the system prompt on every request
+- If file is too large (>500 lines), include only the visible portion
 
-- [ ] **Inject current selection into every message**
-  - If the user has text selected in the editor, include it as a highlighted block in the prompt
-  - Label it clearly: `// Selected code:` so the model knows it's the focus
+- [x] **Inject current selection into every message**
+- If the user has text selected in the editor, include it as a highlighted block in the prompt
+- Label it clearly: `// Selected code:` so the model knows it's the focus
 
-- [ ] **Slash command: `/explain`**
-  - Detect if user message starts with `/explain`
-  - Prepend system instruction: explain the selected code or active file in plain English
-  - Falls back to active file if nothing is selected
+- [x] **Slash command: `/explain`**
+- Detect if user message starts with `/explain`
+- Prepend system instruction: explain the selected code or active file in plain English
+- Falls back to active file if nothing is selected
 
-- [ ] **Slash command: `/fix`**
-  - Detect `/fix` prefix
-  - Prepend system instruction: identify bugs or errors in the selected code and suggest a corrected version
-  - Inject selection or active file as context
+- [x] **Slash command: `/fix`**
+- Detect `/fix` prefix
+- Prepend system instruction: identify bugs or errors in the selected code and suggest a corrected version
+- Inject selection or active file as context
 
-- [ ] **Slash command: `/doc`**
-  - Detect `/doc` prefix
-  - Prepend system instruction: generate XML doc comments (for C#) for the selected method or class
-  - Inject selection as context
+- [x] **Slash command: `/doc`**
+- Detect `/doc` prefix
+- Prepend system instruction: generate XML doc comments (for C#) for the selected method or class
+- Inject selection as context
 
-- [ ] **Slash command: `/tests`**
-  - Detect `/tests` prefix
-  - Prepend system instruction: generate unit tests for the selected code using the project's test framework
-  - Inject selection as context
+- [x] **Slash command: `/tests`**
+- Detect `/tests` prefix
+- Prepend system instruction: generate unit tests for the selected code using the project's test framework
+- Inject selection as context
 
-- [ ] **Slash command autocomplete popup**
-  - When user types `/` in the chat input, show a popup list of available slash commands
-  - Keyboard-navigable, pressing Enter or Tab completes the command
+- [x] **Slash command autocomplete popup**
+- When user types `/` in the chat input, show a popup list of available slash commands
+- Keyboard-navigable, pressing Enter or Tab completes the command
 
 ---
 
 ## Phase 2 — Explicit Context Attachment (Medium effort, Copilot parity)
 
-- [ ] **`#filename` token parsing**
-  - Detect `#word` tokens in the user's message before sending
-  - Search open documents and solution files for a matching filename
-  - Attach the matched file's contents to the prompt
-  - Show the resolved filename as a tag/chip in the chat UI so the user sees what was attached
+- [x] **`#filename` token parsing**
+- Detect `#word` tokens in the user's message before sending
+- Search open documents and solution files for a matching filename
+- Attach the matched file's contents to the prompt
+- Show the resolved filename as a tag/chip in the chat UI so the user sees what was attached
 
-- [ ] **Paperclip / attach file button in chat UI**
-  - Add a button next to the send button
-  - Opens a file picker scoped to the current solution
-  - Attaches chosen file's contents to the next message
+- [x] **Paperclip / attach file button in chat UI**
+- Add a button next to the send button
+- Opens a file picker scoped to the current solution
+- Attaches chosen file's contents to the next message
 
-- [ ] **`ollama-instructions.md` custom instructions**
-  - On solution open, check for `.github/ollama-instructions.md` or `.github/copilot-instructions.md` at the solution root
-  - If found, silently prepend its contents to every system prompt
-  - Show a small indicator in the chat window that custom instructions are active
+- [x] **`ollama-instructions.md` custom instructions**
+- On solution open, check for `.github/ollama-instructions.md` or `.github/copilot-instructions.md` at the solution root
+- If found, silently prepend its contents to every system prompt
+- Show a small indicator in the chat window that custom instructions are active
 
 - [ ] **Streaming responses**
   - Switch from awaiting the full Ollama response to consuming the NDJSON stream from `/api/chat`
