@@ -1,56 +1,7 @@
 ﻿using OllamaAgent.VSIX.Models;
 using System.Collections.ObjectModel;
 using System.Linq;
-		// Slash command autocomplete state
-		private ObservableCollection<SlashCommand> _slashCommandSuggestions = new ObservableCollection<SlashCommand>();
-		private bool _isSlashCommandPopupOpen = false;
-		private int _slashCommandSelectedIndex = 0;
 
-		public ObservableCollection<SlashCommand> SlashCommandSuggestions => _slashCommandSuggestions;
-		public bool IsSlashCommandPopupOpen
-		{
-			get => _isSlashCommandPopupOpen;
-			set
-			{
-				_isSlashCommandPopupOpen = value;
-				var popup = this.FindName("SlashCommandPopup") as System.Windows.Controls.Primitives.Popup;
-				if (popup != null)
-					popup.IsOpen = value;
-			}
-		}
-		public int SlashCommandSelectedIndex
-		{
-			get => _slashCommandSelectedIndex;
-			set
-			{
-				_slashCommandSelectedIndex = value;
-				var listBox = this.FindName("SlashCommandListBox") as ListBox;
-				if (listBox != null)
-					listBox.SelectedIndex = value;
-			}
-		}
-		private void InputBox_PreviewKeyUp(object sender, KeyEventArgs e)
-		{
-			var textBox = sender as TextBox;
-			if (textBox == null) return;
-			var caret = textBox.CaretIndex;
-			var text = textBox.Text;
-			// Detect if slash command should trigger
-			int slashIdx = text.LastIndexOf('/') >= 0 ? text.LastIndexOf('/') : -1;
-			if (slashIdx == 0 || (slashIdx > 0 && (slashIdx == 0 || char.IsWhiteSpace(text[slashIdx - 1]))))
-			{
-				var afterSlash = text.Substring(slashIdx + 1);
-				var matches = SlashCommand.All.Where(cmd => cmd.Command.StartsWith("/" + afterSlash, StringComparison.OrdinalIgnoreCase)).ToList();
-				_slashCommandSuggestions.Clear();
-				foreach (var cmd in matches) _slashCommandSuggestions.Add(cmd);
-				IsSlashCommandPopupOpen = matches.Count > 0;
-				SlashCommandSelectedIndex = 0;
-			}
-			else
-			{
-				IsSlashCommandPopupOpen = false;
-			}
-		}
 using Microsoft.VisualStudio.PlatformUI;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
@@ -342,22 +293,73 @@ namespace OllamaAgent.VSIX.Controls
 
 		// All button logic is now handled via MVVM ICommand bindings in the ViewModel.
 
-				// Attach file dialog logic (invoked by AttachFileCommand in ViewModel)
-				public void ShowAttachFileDialog(string initialDirectory, Action<string> onFileSelected)
-				{
-					Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
-					var dlg = new Microsoft.Win32.OpenFileDialog();
-					dlg.Title = "Attach file to chat";
-					dlg.Filter = "All files (*.*)|*.*";
-					dlg.CheckFileExists = true;
-					dlg.Multiselect = false;
-					if (!string.IsNullOrWhiteSpace(initialDirectory) && System.IO.Directory.Exists(initialDirectory))
-						dlg.InitialDirectory = initialDirectory;
-					var result = dlg.ShowDialog();
-					if (result == true)
-					{
-						onFileSelected?.Invoke(dlg.FileName);
-					}
-				}
+		// Attach file dialog logic (invoked by AttachFileCommand in ViewModel)
+		public void ShowAttachFileDialog(string initialDirectory, Action<string> onFileSelected)
+		{
+			Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
+			var dlg = new Microsoft.Win32.OpenFileDialog();
+			dlg.Title = "Attach file to chat";
+			dlg.Filter = "All files (*.*)|*.*";
+			dlg.CheckFileExists = true;
+			dlg.Multiselect = false;
+			if (!string.IsNullOrWhiteSpace(initialDirectory) && System.IO.Directory.Exists(initialDirectory))
+				dlg.InitialDirectory = initialDirectory;
+			var result = dlg.ShowDialog();
+			if (result == true)
+			{
+				onFileSelected?.Invoke(dlg.FileName);
+			}
+		}
+
+		// Slash command autocomplete state
+		private ObservableCollection<SlashCommand> _slashCommandSuggestions = new ObservableCollection<SlashCommand>();
+		private bool _isSlashCommandPopupOpen = false;
+		private int _slashCommandSelectedIndex = 0;
+
+		public ObservableCollection<SlashCommand> SlashCommandSuggestions => _slashCommandSuggestions;
+		public bool IsSlashCommandPopupOpen
+		{
+			get => _isSlashCommandPopupOpen;
+			set
+			{
+				_isSlashCommandPopupOpen = value;
+				var popup = this.FindName("SlashCommandPopup") as System.Windows.Controls.Primitives.Popup;
+				if (popup != null)
+					popup.IsOpen = value;
+			}
+		}
+		public int SlashCommandSelectedIndex
+		{
+			get => _slashCommandSelectedIndex;
+			set
+			{
+				_slashCommandSelectedIndex = value;
+				var listBox = this.FindName("SlashCommandListBox") as ListBox;
+				if (listBox != null)
+					listBox.SelectedIndex = value;
+			}
+		}
+		private void InputBox_PreviewKeyUp(object sender, KeyEventArgs e)
+		{
+			var textBox = sender as TextBox;
+			if (textBox == null) return;
+			var caret = textBox.CaretIndex;
+			var text = textBox.Text;
+			// Detect if slash command should trigger
+			int slashIdx = text.LastIndexOf('/') >= 0 ? text.LastIndexOf('/') : -1;
+			if (slashIdx == 0 || (slashIdx > 0 && (slashIdx == 0 || char.IsWhiteSpace(text[slashIdx - 1]))))
+			{
+				var afterSlash = text.Substring(slashIdx + 1);
+				var matches = SlashCommand.All.Where(cmd => cmd.Command.StartsWith("/" + afterSlash, StringComparison.OrdinalIgnoreCase)).ToList();
+				_slashCommandSuggestions.Clear();
+				foreach (var cmd in matches) _slashCommandSuggestions.Add(cmd);
+				IsSlashCommandPopupOpen = matches.Count > 0;
+				SlashCommandSelectedIndex = 0;
+			}
+			else
+			{
+				IsSlashCommandPopupOpen = false;
+			}
+		}
 	}
 }

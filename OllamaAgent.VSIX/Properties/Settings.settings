@@ -11,7 +11,10 @@
     <Setting Name="EnableAgent" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
-    <Setting Name="SelectedModel" Type="System.String" Scope="User">
+    <Setting Name="SelectedChatModel" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="SelectedCompletionModel" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
     <Setting Name="ChatsDirectory" Type="System.String" Scope="User">

@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace OllamaAgent.VSIX.Services
 {
     public interface ISymbolExtractorService

@@ -62,12 +62,24 @@ namespace OllamaAgent.VSIX.Properties {
 		[global::System.Configuration.UserScopedSettingAttribute()]
 		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
 		[global::System.Configuration.DefaultSettingValueAttribute("")]
-		public string SelectedModel {
+		public string SelectedChatModel {
 			get {
-				return ((string)(this["SelectedModel"]));
+				return ((string)(this["SelectedChatModel"]));
 			}
 			set {
-				this["SelectedModel"] = value;
+				this["SelectedChatModel"] = value;
+			}
+		}
+
+		[global::System.Configuration.UserScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute("")]
+		public string SelectedCompletionModel {
+			get {
+				return ((string)(this["SelectedCompletionModel"]));
+			}
+			set {
+				this["SelectedCompletionModel"] = value;
 			}
 		}
 

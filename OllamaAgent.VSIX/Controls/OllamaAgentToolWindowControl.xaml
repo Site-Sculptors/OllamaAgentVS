@@ -66,12 +66,25 @@
             TextWrapping="NoWrap"
             ToolTip="{Binding ActiveThread.Name}" />
 
-            <!-- Custom Instructions Indicator -->
-            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,10,0">
-                <Border Background="#FFE6C200" CornerRadius="4" Padding="4,1" Visibility="{Binding CustomInstructionsActive, Converter={StaticResource BoolToVis}}" ToolTip="Custom instructions are active and prepended to every prompt.">
-                    <TextBlock Text="Custom Instructions" FontSize="11" Foreground="Black" FontWeight="SemiBold"/>
-                </Border>
-            </StackPanel>
+        <!--  Custom Instructions Indicator  -->
+        <StackPanel
+            Grid.Row="0"
+            Margin="0,0,10,0"
+            HorizontalAlignment="Right"
+            Orientation="Horizontal">
+            <Border
+                Padding="4,1"
+                Background="#FFE6C200"
+                CornerRadius="4"
+                ToolTip="Custom instructions are active and prepended to every prompt."
+                Visibility="{Binding CustomInstructionsActive, Converter={StaticResource BoolToVis}}">
+                <TextBlock
+                    FontSize="11"
+                    FontWeight="SemiBold"
+                    Foreground="Black"
+                    Text="Custom Instructions" />
+            </Border>
+        </StackPanel>
 
         <!--  Toolbar Row  -->
         <Grid Grid.Row="1" Margin="10">
@@ -216,6 +229,7 @@
 
             <Grid>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
@@ -224,10 +238,38 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-
+                <!--  Show attached file chip/tag if present  -->
+                <Border
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Margin="5,0,0,0"
+                    Padding="4,2"
+                    HorizontalAlignment="Left"
+                    Background="#FFE0E0E0"
+                    CornerRadius="6"
+                    Visibility="{Binding AttachedFileName, Converter={StaticResource BoolToVis}}">
+                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                        <TextBlock Margin="0,0,4,0" Text="📎" />
+                        <TextBlock FontWeight="Bold" Text="{Binding AttachedFileName}" />
+                        <Button
+                            Width="18"
+                            Height="18"
+                            Margin="4,0,0,0"
+                            Padding="0"
+                            VerticalAlignment="Center"
+                            Command="{Binding ClearAttachmentCommand}"
+                            Content="×"
+                            Style="{StaticResource ToolbarIconButtonStyle}"
+                            ToolTip="Remove attachment" />
+                    </StackPanel>
+                </Border>
                 <!--  Text Input Box  -->
-                <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="4">
+                <Grid
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="5">
                     <TextBox
                         x:Name="InputBox"
                         MinHeight="60"
@@ -243,29 +285,38 @@
                         PreviewKeyUp="InputBox_PreviewKeyUp"
                         Text="{Binding Input, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                         TextWrapping="Wrap" />
-                    <Popup x:Name="SlashCommandPopup"
-                           PlacementTarget="{Binding ElementName=InputBox}"
-                           Placement="Top"
-                           StaysOpen="False"
-                           AllowsTransparency="True"
-                           IsOpen="{Binding IsSlashCommandPopupOpen, Mode=TwoWay}"
-                           Focusable="False">
-                        <Border Background="{DynamicResource ColorBackgroundInput}" BorderBrush="Gray" BorderThickness="1" CornerRadius="4">
-                            <ListBox x:Name="SlashCommandListBox"
-                                     ItemsSource="{Binding SlashCommandSuggestions}"
-                                     SelectedIndex="{Binding SlashCommandSelectedIndex, Mode=TwoWay}"
-                                     MinWidth="220"
-                                     MaxHeight="160"
-                                     KeyboardNavigation.TabNavigation="Continue"
-                                     KeyboardNavigation.DirectionalNavigation="Continue"
-                                     BorderThickness="0"
-                                     Background="Transparent"
-                                     Foreground="{DynamicResource ColorTextInput}">
+                    <Popup
+                        x:Name="SlashCommandPopup"
+                        AllowsTransparency="True"
+                        Focusable="False"
+                        IsOpen="{Binding IsSlashCommandPopupOpen, Mode=TwoWay}"
+                        Placement="Top"
+                        PlacementTarget="{Binding ElementName=InputBox}"
+                        StaysOpen="False">
+                        <Border
+                            Background="{DynamicResource ColorBackgroundInput}"
+                            BorderBrush="Gray"
+                            BorderThickness="1"
+                            CornerRadius="4">
+                            <ListBox
+                                x:Name="SlashCommandListBox"
+                                MinWidth="220"
+                                MaxHeight="160"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="{DynamicResource ColorTextInput}"
+                                ItemsSource="{Binding SlashCommandSuggestions}"
+                                KeyboardNavigation.DirectionalNavigation="Continue"
+                                KeyboardNavigation.TabNavigation="Continue"
+                                SelectedIndex="{Binding SlashCommandSelectedIndex, Mode=TwoWay}">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
-                                        <StackPanel Orientation="Vertical" Margin="4,2">
-                                            <TextBlock Text="{Binding Command}" FontWeight="Bold" />
-                                            <TextBlock Text="{Binding Description}" FontSize="11" Foreground="Gray" />
+                                        <StackPanel Margin="4,2" Orientation="Vertical">
+                                            <TextBlock FontWeight="Bold" Text="{Binding Command}" />
+                                            <TextBlock
+                                                FontSize="11"
+                                                Foreground="Gray"
+                                                Text="{Binding Description}" />
                                         </StackPanel>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
@@ -276,7 +327,7 @@
 
                 <!--  Model Selector  -->
                 <ComboBox
-                    Grid.Row="1"
+                    Grid.Row="2"
                     Grid.Column="0"
                     Width="Auto"
                     MinWidth="200"
@@ -287,9 +338,9 @@
                     ItemsSource="{Binding Models}"
                     SelectedItem="{Binding SelectedChatModel, Mode=TwoWay}" />
 
-                <!-- Attach File Button -->
+                <!--  Attach File Button  -->
                 <Button
-                    Grid.Row="1"
+                    Grid.Row="2"
                     Grid.Column="1"
                     Margin="5"
                     Command="{Binding AttachFileCommand}"
@@ -298,18 +349,11 @@
                     Style="{StaticResource ToolbarIconButtonStyle}"
                     ToolTip="Attach File" />
 
-                <!-- Show attached file chip/tag if present -->
-                <Border Grid.Row="1" Grid.Column="2" Margin="5,0,0,0" Padding="4,2" Background="#FFE0E0E0" CornerRadius="6" Visibility="{Binding AttachedFileName, Converter={StaticResource BoolToVis}}">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="📎" Margin="0,0,4,0"/>
-                        <TextBlock Text="{Binding AttachedFileName}" FontWeight="Bold"/>
-                        <Button Command="{Binding ClearAttachmentCommand}" Content="×" Width="18" Height="18" Margin="4,0,0,0" Padding="0" VerticalAlignment="Center" Style="{StaticResource ToolbarIconButtonStyle}" ToolTip="Remove attachment" />
-                    </StackPanel>
-                </Border>
+
 
                 <!--  Tools Button  -->
                 <Button
-                    Grid.Row="1"
+                    Grid.Row="2"
                     Grid.Column="3"
                     Margin="5"
                     Command="{Binding ToolsCommand}"
@@ -320,7 +364,7 @@
 
                 <!--  Send Button  -->
                 <Button
-                    Grid.Row="1"
+                    Grid.Row="2"
                     Grid.Column="4"
                     Margin="5"
                     Command="{Binding SendCommand}"
@@ -332,7 +376,7 @@
 
                 <!--  Stop Streaming Button  -->
                 <Button
-                    Grid.Row="1"
+                    Grid.Row="2"
                     Grid.Column="4"
                     Margin="5"
                     Command="{Binding StopStreamingCommand}"
@@ -344,14 +388,14 @@
             </Grid>
         </Border>
 
-    <!-- Typing Indicator / Blinking Cursor -->
-    <TextBlock
-        Grid.Row="4"
-        Margin="10,0,0,10"
-        FontStyle="Italic"
-        FontSize="13"
-        Foreground="Gray"
-        Visibility="{Binding IsStreaming, Converter={StaticResource BoolToVis}}"
-        Text="Ollama is typing... |" />
+        <!--  Typing Indicator / Blinking Cursor  -->
+        <TextBlock
+            Grid.Row="4"
+            Margin="10,0,0,10"
+            FontSize="13"
+            FontStyle="Italic"
+            Foreground="Gray"
+            Text="Ollama is typing... |"
+            Visibility="{Binding IsStreaming, Converter={StaticResource BoolToVis}}" />
     </Grid>
 </UserControl>

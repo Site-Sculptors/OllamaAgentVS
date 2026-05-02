@@ -24,12 +24,12 @@ namespace OllamaAgent.VSIX.Services
             var copilotPath = Path.Combine(githubDir, "copilot-instructions.md");
             if (File.Exists(ollamaPath))
             {
-                _instructions = await File.ReadAllTextAsync(ollamaPath);
+                _instructions = File.ReadAllText(ollamaPath);
                 _instructionsPath = ollamaPath;
             }
             else if (File.Exists(copilotPath))
             {
-                _instructions = await File.ReadAllTextAsync(copilotPath);
+                _instructions = File.ReadAllText(copilotPath);
                 _instructionsPath = copilotPath;
             }
             else

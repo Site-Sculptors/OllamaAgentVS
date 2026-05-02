@@ -23,7 +23,13 @@ namespace OllamaAgent.VSIX.Services
             if (dte == null)
                 return (null, null);
 
-            OutputWindow outputWindow = dte.ToolWindows.OutputWindow;
+            OutputWindow outputWindow = null;
+            try
+            {
+                var window = dte.Windows.Item(EnvDTE.Constants.vsWindowKindOutput);
+                outputWindow = window?.Object as OutputWindow;
+            }
+            catch { }
             if (outputWindow == null)
                 return (null, null);
 

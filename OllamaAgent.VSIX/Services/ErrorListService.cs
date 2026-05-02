@@ -1,4 +1,5 @@
 using EnvDTE;
+using EnvDTE80;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using System;
@@ -29,7 +30,14 @@ namespace OllamaAgent.VSIX.Services
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             var dte = (DTE)Package.GetGlobalService(typeof(DTE));
-            var errorItems = dte?.ToolWindows?.ErrorList?.ErrorItems;
+            EnvDTE80.ErrorList errorList = null;
+            try
+            {
+                var window = dte?.Windows?.Item(EnvDTE80.WindowKinds.vsWindowKindErrorList);
+                errorList = window?.Object as EnvDTE80.ErrorList;
+            }
+            catch { }
+            var errorItems = errorList?.ErrorItems;
             var results = new List<ErrorListItem>();
             if (errorItems == null || string.IsNullOrEmpty(filePath))
                 return results;

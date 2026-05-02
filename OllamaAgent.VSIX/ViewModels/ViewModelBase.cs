@@ -72,6 +72,9 @@ public class ViewModelBase : INotifyPropertyChanged
 		if (e.PropertyName == nameof(IModelStore.SelectedChatModel))
 			OnPropertyChanged(nameof(SelectedChatModel));
 
+		if (e.PropertyName == nameof(IModelStore.SelectedCompletionModel))
+			OnPropertyChanged(nameof(SelectedCompletionModel));
+
 		if (e.PropertyName == nameof(IModelStore.Models))
 			OnPropertyChanged(nameof(Models));
 	}
@@ -94,10 +97,8 @@ public class ViewModelBase : INotifyPropertyChanged
 			if (ModelStore.SelectedChatModel != value)
 			{
 				ModelStore.SelectedChatModel = value;
-				// NOTE: No OnPropertyChanged() call needed here.
-				// Setting ModelStore.SelectedChatModel fires ModelStore.PropertyChanged,
-				// which ModelStore_PropertyChanged catches and forwards for us.
-				// Calling it here too would cause a double-notification.
+				Settings.Default.SelectedChatModel = value?.Name;
+				Settings.Default.Save();
 			}
 		}
 	}
@@ -109,16 +110,54 @@ public class ViewModelBase : INotifyPropertyChanged
 			if (ModelStore.SelectedCompletionModel != value)
 			{
 				ModelStore.SelectedCompletionModel = value;
-				// NOTE: No OnPropertyChanged() call needed here.
-				// Setting ModelStore.SelectedCompletionModel fires ModelStore.PropertyChanged,
-				// which ModelStore_PropertyChanged catches and forwards for us.
-				// Calling it here too would cause a double-notification.
+				Settings.Default.SelectedCompletionModel = value?.Name;
+				Settings.Default.Save();
 			}
 		}
 	}
 
+	private void RestoreSelectedModels()
+	{
+		var persistedChatModel = Settings.Default.SelectedChatModel;
+		var persistedCompletionModel = Settings.Default.SelectedCompletionModel;
+		var currentChatModel = ModelStore.SelectedChatModel?.Name;
+		var currentCompletionModel = ModelStore.SelectedCompletionModel?.Name;
+
+		var chatModelName = !string.IsNullOrWhiteSpace(persistedChatModel)
+			? persistedChatModel
+			: currentChatModel;
+
+		var completionModelName = !string.IsNullOrWhiteSpace(persistedCompletionModel)
+			? persistedCompletionModel
+			: currentCompletionModel;
+
+		SelectedChatModel = !string.IsNullOrWhiteSpace(chatModelName)
+			? Models.FirstOrDefault(m => m.Name == chatModelName)
+			: null;
+
+		SelectedCompletionModel = !string.IsNullOrWhiteSpace(completionModelName)
+			? Models.FirstOrDefault(m => m.Name == completionModelName)
+			: null;
+
+		if (SelectedChatModel is null)
+		{
+			SelectedChatModel = Models.FirstOrDefault();
+		}
+
+		if (SelectedCompletionModel is null)
+		{
+			SelectedCompletionModel = Models.FirstOrDefault();
+		}
+	}
+
+	// Call this ONLY after models are loaded/refreshed
 	public void LoadSettings()
 	{
+		_modelsDirectory = Settings.Default.ModelsDirectory;
+		OnPropertyChanged(nameof(ModelsDirectory));
+
+		RestoreSelectedModels();
+
 		var persistedEndpoint = OllamaAgent.VSIX.Properties.Settings.Default.Endpoint;
 		if (!string.IsNullOrWhiteSpace(persistedEndpoint))
 		{
@@ -130,8 +169,12 @@ public class ViewModelBase : INotifyPropertyChanged
 			_ollamaEndpoint = "http://localhost:11434";
 			OnPropertyChanged(nameof(OllamaEndpoint));
 		}
+
 		_agentEnabled = OllamaAgent.VSIX.Properties.Settings.Default.EnableAgent;
+		OnPropertyChanged(nameof(AgentEnabled));
+
 		var persistedModelsDirectory = OllamaAgent.VSIX.Properties.Settings.Default.ModelsDirectory;
+
 		if (!string.IsNullOrWhiteSpace(persistedModelsDirectory))
 		{
 			_modelsDirectory = persistedModelsDirectory;
@@ -141,15 +184,19 @@ public class ViewModelBase : INotifyPropertyChanged
 		var persistedChatsDirectory = OllamaAgent.VSIX.Properties.Settings.Default.ChatsDirectory;
 		if (!string.IsNullOrWhiteSpace(persistedChatsDirectory))
 		{
-		ChatsDirectory = persistedChatsDirectory;
+			_chatsDirectory = persistedChatsDirectory;
+			OnPropertyChanged(nameof(ChatsDirectory));
 		}
 	}
 
 	public void SaveSettings()
 	{
-		OllamaAgent.VSIX.Properties.Settings.Default.Endpoint = OllamaEndpoint;
-		OllamaAgent.VSIX.Properties.Settings.Default.EnableAgent = AgentEnabled;
-		OllamaAgent.VSIX.Properties.Settings.Default.Save();
+		Settings.Default.ModelsDirectory = ModelsDirectory;
+		Settings.Default.SelectedChatModel = SelectedChatModel?.Name;
+		Settings.Default.SelectedCompletionModel = SelectedCompletionModel?.Name;
+		Settings.Default.Endpoint = OllamaEndpoint;
+		Settings.Default.EnableAgent = AgentEnabled;
+		Settings.Default.Save();
 	}
 
 	private bool _agentEnabled = true;
@@ -434,20 +481,21 @@ public class ViewModelBase : INotifyPropertyChanged
 
 			var models = await OllamaModelService.GetModelsAsync(OllamaEndpoint);
 
-		// Update status based on model retrieval
-		if (models.Count > 0)
-		{
-			if (Status != ServerStatus.Online)
-				Status = ServerStatus.Online;
-		}
-		else
-		{
-			await CheckOllamaOnlineAsync();
-		}
+			// Update status based on model retrieval
+			if (models.Count > 0)
+			{
+				if (Status != ServerStatus.Online)
+					Status = ServerStatus.Online;
+			}
+			else
+			{
+				await CheckOllamaOnlineAsync();
+			}
 
 			await Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-			var oldSelected = SelectedChatModel?.Name;
+			var oldSelectedChat = SelectedChatModel?.Name ?? Settings.Default.SelectedChatModel;
+			var oldSelectedCompletion = SelectedCompletionModel?.Name ?? Settings.Default.SelectedCompletionModel;
 			Models.Clear();
 			foreach (var m in models)
 			{
@@ -455,15 +503,22 @@ public class ViewModelBase : INotifyPropertyChanged
 					Models.Add(new LLM { Name = m });
 			}
 
-			if (!string.IsNullOrWhiteSpace(oldSelected))
-			{
-				var match = Models.FirstOrDefault(x => x.Name == oldSelected);
-				if (match != null)
-					SelectedChatModel = match;
-			}
-			else if (Models.Count > 0)
+			SelectedChatModel = !string.IsNullOrWhiteSpace(oldSelectedChat)
+				? Models.FirstOrDefault(x => x.Name == oldSelectedChat)
+				: null;
+
+			SelectedCompletionModel = !string.IsNullOrWhiteSpace(oldSelectedCompletion)
+				? Models.FirstOrDefault(x => x.Name == oldSelectedCompletion)
+				: null;
+
+			if (SelectedChatModel == null && Models.Count > 0)
 			{
 				SelectedChatModel = Models[0];
+			}
+
+			if (SelectedCompletionModel == null && Models.Count > 0)
+			{
+				SelectedCompletionModel = Models[0];
 			}
 		}
 		catch (Exception ex)

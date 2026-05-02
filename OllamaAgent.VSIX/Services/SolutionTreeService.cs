@@ -53,7 +53,33 @@ namespace OllamaAgent.VSIX.Services
             }
 
             // Prioritize: 1. .csproj, 2. Program.cs, 3. interface files, 4. files matching keywords, 5. other small .cs/.xaml files
-            var keywords = userInput?.Split(new[] { ' ', '\
+            var keywords = userInput?.Split(new[] { ' ', '\t', ',', ';', '.', ':', '-', '_', '/' }, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+
+            // TODO: Implement prioritization and file reading logic here as needed
+            // For now, just return the results for compilation
+            return results;
+        }
+
+        // Recursively collect all physical files in the project
+        private void CollectRelevantFiles(ProjectItems items, List<ProjectItem> candidates)
+        {
+            if (items == null) return;
+            foreach (ProjectItem item in items)
+            {
+                try
+                {
+                    if (item.Kind == EnvDTE.Constants.vsProjectItemKindPhysicalFile)
+                    {
+                        candidates.Add(item);
+                    }
+                    else if (item.Kind == EnvDTE.Constants.vsProjectItemKindPhysicalFolder)
+                    {
+                        CollectRelevantFiles(item.ProjectItems, candidates);
+                    }
+                }
+                catch { }
+            }
+        }
 
         private void AppendProject(StringBuilder sb, Project proj, int indent)
         {

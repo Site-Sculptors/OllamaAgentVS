@@ -11,7 +11,9 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OllamaAgent.VSIX.Services;
+
+namespace OllamaAgent.VSIX.Services
+{
 
 
 public class OllamaChatService : IOllamaChatService
@@ -89,10 +91,10 @@ public class OllamaChatService : IOllamaChatService
 
 		try
 		{
-			using (var response = await _httpClient.PostAsync(url, content, HttpCompletionOption.ResponseHeadersRead, token))
+using (var response = await _httpClient.PostAsync(url, content, token))
 			{
 				response.EnsureSuccessStatusCode();
-				using (var stream = await response.Content.ReadAsStreamAsync(token))
+				using (var stream = await response.Content.ReadAsStreamAsync())
 				using (var reader = new System.IO.StreamReader(stream))
 				{
 					string line;
