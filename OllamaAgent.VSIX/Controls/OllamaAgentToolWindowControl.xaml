@@ -234,37 +234,72 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <!--  Show attached file chip/tag if present  -->
-                <Border
+
+                <StackPanel
                     Grid.Row="0"
                     Grid.Column="0"
-                    Margin="5,0,0,0"
-                    Padding="4,2"
-                    HorizontalAlignment="Left"
-                    Background="#FFE0E0E0"
-                    CornerRadius="6"
-                    Visibility="{Binding AttachedFileName, Converter={StaticResource BoolToVis}}">
-                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                        <TextBlock Margin="0,0,4,0" Text="📎" />
-                        <TextBlock FontWeight="Bold" Text="{Binding AttachedFileName}" />
+                    Grid.ColumnSpan="5"
+                    Orientation="Horizontal">
+                    <Border
+                        Margin="5,0,0,0"
+                        Padding="6,2"
+                        HorizontalAlignment="Left"
+                        Background="#22ffffff"
+                        BorderThickness="0"
+                        CornerRadius="6">
                         <Button
                             Width="18"
                             Height="18"
-                            Margin="4,0,0,0"
+                            Margin="0,0,4,0"
                             Padding="0"
                             VerticalAlignment="Center"
-                            Command="{Binding ClearAttachmentCommand}"
-                            Content="×"
+                            BorderBrush="{DynamicResource ColorTextPrimary}"
+                            BorderThickness="1"
+                            Command="{Binding AttachFileCommand}"
+                            Content="&#xf067;"
+                            FontFamily="{StaticResource FASolid}"
                             Style="{StaticResource ToolbarIconButtonStyle}"
-                            ToolTip="Remove attachment" />
-                    </StackPanel>
-                </Border>
+                            ToolTip="Add attachment" />
+
+                    </Border>
+                    <Border
+                        Margin="5,0,0,0"
+                        Padding="6,2"
+                        HorizontalAlignment="Left"
+                        Background="#22ffffff"
+                        BorderThickness="0"
+                        CornerRadius="6">
+                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                            <TextBlock
+                                FontWeight="Bold"
+                                Foreground="{DynamicResource ColorTextPrimary}"
+                                Text="{Binding AttachedFileName}" />
+                            <TextBlock
+                                Margin="6,0"
+                                FontWeight="ExtraBold"
+                                Foreground="{DynamicResource ColorTextPrimary}"
+                                Text="|" />
+                            <Button
+                                Width="18"
+                                Height="18"
+                                Margin="4,0,0,0"
+                                Padding="0"
+                                VerticalAlignment="Center"
+                                Command="{Binding ClearAttachmentCommand}"
+                                Content="&#xf067;"
+                                FontFamily="{StaticResource FASolid}"
+                                Style="{StaticResource ToolbarIconButtonStyle}"
+                                ToolTip="Remove attachment" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
                 <!--  Text Input Box  -->
                 <Grid
                     Grid.Row="1"
@@ -329,6 +364,7 @@
                 <ComboBox
                     Grid.Row="2"
                     Grid.Column="0"
+                    Grid.ColumnSpan="3"
                     Width="Auto"
                     MinWidth="200"
                     Margin="5"
@@ -339,7 +375,7 @@
                     SelectedItem="{Binding SelectedChatModel, Mode=TwoWay}" />
 
                 <!--  Attach File Button  -->
-                <Button
+                <!--<Button
                     Grid.Row="2"
                     Grid.Column="1"
                     Margin="5"
@@ -347,7 +383,7 @@
                     Content="&#xf0c6;"
                     FontFamily="{StaticResource FASolid}"
                     Style="{StaticResource ToolbarIconButtonStyle}"
-                    ToolTip="Attach File" />
+                    ToolTip="Attach File" />-->
 
 
 
@@ -356,6 +392,7 @@
                     Grid.Row="2"
                     Grid.Column="3"
                     Margin="5"
+                    HorizontalAlignment="Right"
                     Command="{Binding ToolsCommand}"
                     Content="&#xf0ad;"
                     FontFamily="{StaticResource FASolid}"
@@ -367,6 +404,7 @@
                     Grid.Row="2"
                     Grid.Column="4"
                     Margin="5"
+                    HorizontalAlignment="Right"
                     Command="{Binding SendCommand}"
                     Content="&#xf1d8;"
                     FontFamily="{StaticResource FASolid}"
@@ -379,6 +417,7 @@
                     Grid.Row="2"
                     Grid.Column="4"
                     Margin="5"
+                    HorizontalAlignment="Right"
                     Command="{Binding StopStreamingCommand}"
                     Content="&#xf04d;"
                     FontFamily="{StaticResource FASolid}"
@@ -390,7 +429,7 @@
 
         <!--  Typing Indicator / Blinking Cursor  -->
         <TextBlock
-            Grid.Row="4"
+            Grid.Row="3"
             Margin="10,0,0,10"
             FontSize="13"
             FontStyle="Italic"
