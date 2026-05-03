@@ -159,22 +159,29 @@ namespace OllamaAgent.VSIX.ViewModels
 		public ObservableCollection<ChatThread> Threads { get; }
 
 		private ChatThread _activeThread;
-	   public ChatThread ActiveThread
-	   {
-		   get => _activeThread;
-		   set
-		   {
-			   _activeThread = value;
-			   OnPropertyChanged();
-			   OnPropertyChanged(nameof(ChatHistory));
-			   // Hide history view when a thread is selected
-			   if (value != null && IsHistoryVisible)
-				   IsHistoryVisible = false;
-			   // Update SendCommand CanExecute
-			   if (_sendCommand is AsyncRelayCommand arc)
-				   arc.RaiseCanExecuteChanged();
-		   }
-	   }
+		public ChatThread ActiveThread
+		{
+			get => _activeThread;
+			set
+			{
+				bool isSame = ReferenceEquals(_activeThread, value);
+				_activeThread = value;
+				OnPropertyChanged();
+				OnPropertyChanged(nameof(ChatHistory));
+				// Hide history view when a thread is selected
+				if (value != null && IsHistoryVisible)
+					IsHistoryVisible = false;
+				// Update SendCommand CanExecute
+				if (_sendCommand is AsyncRelayCommand arc)
+					arc.RaiseCanExecuteChanged();
+				// Force UI update even if same thread is selected
+				if (isSame)
+				{
+					OnPropertyChanged();
+					OnPropertyChanged(nameof(ChatHistory));
+				}
+			}
+		}
 
 		// Synchronize thread selection with the UI
 		public ChatThread CurrentThread
@@ -182,6 +189,29 @@ namespace OllamaAgent.VSIX.ViewModels
 			get => ActiveThread;
 			set => ActiveThread = value;
 		}
+
+		// Selected thread for UI (history ListBox)
+		private ChatThread _selectedThread;
+		public ChatThread SelectedThread
+		{
+			get => _selectedThread;
+			set
+			{
+				_selectedThread = value;
+				OnPropertyChanged();
+			}
+		}
+
+		// Command to handle thread selection from UI
+		private IRelayCommand _selectThreadCommand;
+		public IRelayCommand SelectThreadCommand =>
+			_selectThreadCommand ??= new RelayCommand<ChatThread>(thread =>
+			{
+				if (thread != null)
+				{
+					ActiveThread = thread;
+				}
+			});
 
 	   public ObservableCollection<ChatMessageBase> ChatHistory => ActiveThread?.Messages ?? _emptyMessages;
 
@@ -499,7 +529,8 @@ namespace OllamaAgent.VSIX.ViewModels
 			   });
 			   // After streaming, extract only the message part if present
 				  var fullResponse = sb.ToString();
-			   string messageText;
+				  string messageText;
+			   string titleText = null;
 			   var hasMessage = fullResponse.Contains("Message:", StringComparison.OrdinalIgnoreCase);
 			   var hasTitle = fullResponse.Contains("Title:", StringComparison.OrdinalIgnoreCase);
 			   if (hasMessage)
@@ -507,22 +538,49 @@ namespace OllamaAgent.VSIX.ViewModels
 				   var messageIdx = fullResponse.IndexOf("Message:", StringComparison.OrdinalIgnoreCase);
 				   var titleIdx = fullResponse.IndexOf("Title:", messageIdx, StringComparison.OrdinalIgnoreCase);
 				   if (titleIdx > messageIdx)
+				   {
 					   messageText = fullResponse.Substring(messageIdx + 8, titleIdx - (messageIdx + 8)).Trim();
+					   // Extract title
+					   var titleStart = titleIdx + 6;
+					   var titleEnd = fullResponse.IndexOf('\n', titleStart);
+					   if (titleEnd > titleStart)
+						   titleText = fullResponse.Substring(titleStart, titleEnd - titleStart).Trim();
+					   else
+						   titleText = fullResponse.Substring(titleStart).Trim();
+				   }
 				   else
+				   {
 					   messageText = fullResponse.Substring(messageIdx + 8).Trim();
+				   }
 			   }
 			   else if (hasTitle)
 			   {
 				   // Optionally extract or show the title, or fallback to full response
 				   messageText = fullResponse.Trim();
+				   var titleIdx = fullResponse.IndexOf("Title:", StringComparison.OrdinalIgnoreCase);
+				   if (titleIdx >= 0)
+				   {
+					   var titleStart = titleIdx + 6;
+					   var titleEnd = fullResponse.IndexOf('\n', titleStart);
+					   if (titleEnd > titleStart)
+						   titleText = fullResponse.Substring(titleStart, titleEnd - titleStart).Trim();
+					   else
+						   titleText = fullResponse.Substring(titleStart).Trim();
+				   }
 			   }
 			   else
 			   {
 				   messageText = fullResponse.Trim();
 			   }
 			   aiMsg.Content = messageText;
+			   // Update thread title if present
+			   if (!string.IsNullOrWhiteSpace(titleText))
+			   {
+				   ActiveThread.Name = titleText;
+				   ActiveThread.IsAutoNamed = false;
+			   }
 			   OnPropertyChanged(nameof(ChatHistory));
-				  System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Streaming ended at {DateTime.Now:HH:mm:ss.fff}");
+			   System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Streaming ended at {DateTime.Now:HH:mm:ss.fff}");
 			   IsAwaitingAIResponse = false;
 			   await SaveThreadAsync(ActiveThread);
 			});

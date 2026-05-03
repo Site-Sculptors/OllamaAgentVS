@@ -2,9 +2,11 @@
     x:Class="OllamaAgent.VSIX.Controls.OllamaAgentToolWindowControl"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:OllamaAgent.VSIX.Controls"
     xmlns:converters="clr-namespace:OllamaAgent.VSIX.Converters"
-    xmlns:viewModels="clr-namespace:OllamaAgent.VSIX.ViewModels"
-    xmlns:controls="clr-namespace:OllamaAgent.VSIX.Controls">
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+    xmlns:ei="http://schemas.microsoft.com/xaml/behaviors"
+    xmlns:viewModels="clr-namespace:OllamaAgent.VSIX.ViewModels">
 
     <UserControl.Resources>
         <ResourceDictionary>
@@ -192,8 +194,13 @@
             Background="{DynamicResource ColorBackgroundPrimary}"
             BorderBrush="{DynamicResource ColorBorderPrimary}"
             ItemsSource="{Binding Threads}"
-            SelectedItem="{Binding ActiveThread, Mode=TwoWay}"
+            SelectedItem="{Binding SelectedThread, Mode=TwoWay}"
             Visibility="{Binding IsHistoryVisible, Converter={StaticResource BoolToVis}}">
+            <i:Interaction.Triggers>
+                <i:EventTrigger EventName="SelectionChanged">
+                    <i:InvokeCommandAction Command="{Binding SelectThreadCommand}" CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource Self}}" />
+                </i:EventTrigger>
+            </i:Interaction.Triggers>
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <TextBlock
@@ -203,8 +210,6 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-
-        <!--  Current Chat Messages  -->
         <ListBox
             x:Name="CurrentChat"
             Grid.Row="2"
