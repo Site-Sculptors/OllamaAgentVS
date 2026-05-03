@@ -288,9 +288,20 @@ namespace OllamaAgent.VSIX.ViewModels
 				}
 			});
 
-		private IRelayCommand _chatHistoryCommand;
-		public IRelayCommand ChatHistoryCommand =>
-			_chatHistoryCommand ??= new RelayCommand(() => IsHistoryVisible = !IsHistoryVisible);
+		private IAsyncRelayCommand _chatHistoryCommand;
+		public IAsyncRelayCommand ChatHistoryCommand =>
+			_chatHistoryCommand ??= new CommunityToolkit.Mvvm.Input.AsyncRelayCommand(async () =>
+			{
+				if (!IsHistoryVisible)
+				{
+					await LoadThreadsForCurrentSolutionAsync();
+					IsHistoryVisible = true;
+				}
+				else
+				{
+					IsHistoryVisible = false;
+				}
+			});
 
 		// OpenSettingsAsync now inherited from ViewModelBase
 
