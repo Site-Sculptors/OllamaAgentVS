@@ -1,4 +1,3 @@
-
 # Copilot Behavior Rules (Strict)
 
 ---
@@ -83,6 +82,10 @@ You MUST verify:
 - VSCT GUID matches C# package GUID
 - Commands are bound under correct Visual Studio menu (Extensions)
 - Always use .NET best practices and MVVM pattern for WPF code. Move business logic, data, and commands to the ViewModel. Keep code-behind minimal and only for UI-specific or theme-related logic. Use ICommand for button actions and data binding for UI interaction.
+  - Use lazy-initialized command properties in ViewModels. Declare commands as properties that instantiate the command on first access using concise lambdas. Example:private AsyncRelayCommand<object>? _saveCommand;
+public AsyncRelayCommand<object> SaveCommand =>
+    _saveCommand ??= new AsyncRelayCommand<object>(async _ => { /* inline async logic */ });  - Prefer inline async lambdas for simple handlers instead of placeholder methods or unnecessary indirection.
+  - Do not instantiate commands in constructors; instantiate on first access only.
 - Keep property setters simple and side-effect free. Avoid embedding UI selection workflow or business logic in property setters. Implement selection workflows using ICommand implementations, explicit command handlers, or event-handling logic in the ViewModel (or minimal, explicit code-behind when appropriate).
 
 If any step is unverified:

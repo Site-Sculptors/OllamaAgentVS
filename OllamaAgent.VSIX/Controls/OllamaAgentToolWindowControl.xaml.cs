@@ -1,20 +1,16 @@
-﻿using Microsoft.VisualStudio.PlatformUI;
-using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Shell.Interop;
+﻿using Microsoft.VisualStudio.Shell;
 
 using OllamaAgent.VSIX.Models;
 using OllamaAgent.VSIX.ViewModels;
 
 using System;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
+
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Button;
 
 namespace OllamaAgent.VSIX.Controls
 {
@@ -32,7 +28,10 @@ namespace OllamaAgent.VSIX.Controls
 			InitializeComponent();
 
 			DataContext = viewModel;
-			_viewModel = viewModel;
+			_viewModel = viewModel; 
+			
+			_viewModel.OnShowAttachMenuRequested += ShowAttachMenu;
+
 
 			// Subscribe to VS document/tab change events
 			SubscribeToDocumentEvents();
@@ -44,6 +43,13 @@ namespace OllamaAgent.VSIX.Controls
 
 			// Only subscribe to document/tab change events for context updates. Do not update active document context on chat window focus.
 
+		}
+		private void ShowAttachMenu()
+		{
+			var menu = (ContextMenu)PlusButton.FindResource("AttachMenu");
+			menu.PlacementTarget = PlusButton;
+			menu.DataContext = DataContext; // Ensure menu items bind to the ViewModel
+			menu.IsOpen = true;
 		}
 
 		private EnvDTE.Events _dteEvents;

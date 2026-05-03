@@ -41,6 +41,18 @@
 
             <!--  Toolbar icon button style (text-based icons like FontAwesome)  -->
 
+            <ContextMenu x:Key="AttachMenu">
+                <MenuItem Command="{Binding AttachActiveDocumentCommand}" Header="Active Document" />
+                <MenuItem Command="{Binding AttachSolutionCommand}" Header="Solution" />
+                <MenuItem Command="{Binding AttachFilesCommand}" Header="Files" />
+                <MenuItem Command="{Binding AttachClassesCommand}" Header="Classes" />
+                <MenuItem Command="{Binding AttachMethodsCommand}" Header="Methods" />
+                <MenuItem Command="{Binding AttachOutputLogsCommand}" Header="Output Logs" />
+                <MenuItem Command="{Binding AttachMcpPromptsCommand}" Header="MCP Prompts" />
+                <MenuItem Command="{Binding AttachMcpResourcesCommand}" Header="MCP Resources" />
+                <MenuItem Command="{Binding UploadImageCommand}" Header="Upload Image" />
+                <MenuItem Command="{Binding ToggleAutoAttachCommand}" Header="Auto Attach Active Document" />
+            </ContextMenu>
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -264,6 +276,7 @@
                         BorderThickness="0"
                         CornerRadius="6">
                         <Button
+                            x:Name="PlusButton"
                             Width="18"
                             Height="18"
                             Margin="0,0,4,0"
@@ -271,40 +284,52 @@
                             VerticalAlignment="Center"
                             BorderBrush="{DynamicResource ColorTextPrimary}"
                             BorderThickness="1"
-                            Command="{Binding AttachFileCommand}"
+                            Command="{Binding ShowAttachMenuCommand}"
                             Content="&#xf067;"
                             FontFamily="{StaticResource FASolid}"
                             Style="{StaticResource ToolbarIconButtonStyle}"
                             ToolTip="Add attachment" />
 
                     </Border>
-                    <Border
-                        Margin="5,0,0,0"
-                        Padding="6,2"
-                        HorizontalAlignment="Left"
-                        Background="#22ffffff"
-                        BorderThickness="0"
-                        CornerRadius="6">
-                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                            <TextBlock Foreground="{DynamicResource ColorTextPrimary}" Text="{Binding AttachedFileName}" />
-                            <TextBlock
-                                Margin="6,0"
-                                Foreground="{DynamicResource ColorTextPrimary}"
-                                Opacity=".53"
-                                Text="|" />
-                            <Button
-                                Width="18"
-                                Height="18"
-                                Margin="4,0,0,0"
-                                Padding="0"
-                                VerticalAlignment="Center"
-                                Command="{Binding ClearAttachmentCommand}"
-                                Content="&#xf00d;"
-                                FontFamily="{StaticResource FASolid}"
-                                Style="{StaticResource ToolbarIconButtonStyle}"
-                                ToolTip="Remove attachment" />
-                        </StackPanel>
-                    </Border>
+                    <ItemsControl ItemsSource="{Binding Attachments}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border
+                                    Margin="5,0,0,0"
+                                    Padding="6,2"
+                                    HorizontalAlignment="Left"
+                                    Background="#22ffffff"
+                                    BorderThickness="0"
+                                    CornerRadius="6">
+                                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                        <TextBlock Foreground="{DynamicResource ColorTextPrimary}" Text="{Binding AttachedFileName}" />
+                                        <TextBlock
+                                            Margin="6,0"
+                                            Foreground="{DynamicResource ColorTextPrimary}"
+                                            Opacity=".53"
+                                            Text="|" />
+                                        <Button
+                                            Width="18"
+                                            Height="18"
+                                            Margin="4,0,0,0"
+                                            Padding="0"
+                                            VerticalAlignment="Center"
+                                            Command="{Binding ClearAttachmentCommand}"
+                                            Content="&#xf00d;"
+                                            FontFamily="{StaticResource FASolid}"
+                                            Style="{StaticResource ToolbarIconButtonStyle}"
+                                            ToolTip="Remove attachment" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
                 </StackPanel>
 
                 <!--  Text Input Box  -->

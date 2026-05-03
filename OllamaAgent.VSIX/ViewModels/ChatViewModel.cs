@@ -50,61 +50,42 @@ public partial class ChatViewModel : ViewModelBase
 			SetActiveDocumentAsAttachedFile();
 		}
 
-			   public void SetActiveDocumentAsAttachedFile()
+		public void SetActiveDocumentAsAttachedFile()
 		{
 			ThreadHelper.ThrowIfNotOnUIThread();
 			var dte = (EnvDTE.DTE)ServiceProvider.GlobalProvider.GetService(typeof(EnvDTE.DTE));
 			var doc = dte?.ActiveDocument;
 			if (doc != null && !string.IsNullOrEmpty(doc.FullName))
 			{
-				AttachedFileName = System.IO.Path.GetFileName(doc.FullName);
-				AttachedFilePath = doc.FullName;
-				try
+				// Prevent duplicate attachments
+				if (!Attachments.Any(a => a.Label == "Active Document" && (string)a.Context == doc.FullName))
 				{
-					AttachedFileContent = System.IO.File.ReadAllText(doc.FullName);
-				}
-				catch
-				{
-					AttachedFileContent = null;
+					Attachments.Add(new Models.AttachmentModel
+					{
+						Icon = "\uE7C3", // Document icon (Segoe MDL2 Assets)
+						Label = "Active Document",
+						Context = doc.FullName
+					});
 				}
 			}
-			else
+		}
+
+		// Attachments chip bar state
+		public ObservableCollection<Models.AttachmentModel> Attachments { get; } = new ObservableCollection<Models.AttachmentModel>();
+
+		private IRelayCommand<Models.AttachmentModel> _removeAttachmentCommand;
+		public IRelayCommand<Models.AttachmentModel> RemoveAttachmentCommand =>
+			_removeAttachmentCommand ??= new CommunityToolkit.Mvvm.Input.RelayCommand<Models.AttachmentModel>(attachment =>
 			{
-				AttachedFileName = null;
-				AttachedFilePath = null;
-				AttachedFileContent = null;
-			}
-			AttachedFileName = "Active Document";
-		}
+				if (attachment != null && Attachments.Contains(attachment))
+					Attachments.Remove(attachment);
+			});
 
-		// Attachment state
-		private string _attachedFileName;
-		public string AttachedFileName
-		{
-			get => _attachedFileName;
-			set { _attachedFileName = value; OnPropertyChanged(); }
-		}
-
-		private string _attachedFilePath;
-		public string AttachedFilePath
-		{
-			get => _attachedFilePath;
-			set { _attachedFilePath = value; OnPropertyChanged(); }
-		}
-
-		private string _attachedFileContent;
-		public string AttachedFileContent
-		{
-			get => _attachedFileContent;
-			set { _attachedFileContent = value; OnPropertyChanged(); }
-		}
-
-		// Attach file command
+		// Attach file command (adds to Attachments)
 		private IRelayCommand _attachFileCommand;
 		public IRelayCommand AttachFileCommand =>
 			_attachFileCommand ??= new CommunityToolkit.Mvvm.Input.RelayCommand(() =>
 			{
-				// Find the tool window control to show dialog
 				var window = System.Windows.Application.Current?.Windows
 					.OfType<System.Windows.Window>()
 					.SelectMany(w => w.OwnedWindows.Cast<System.Windows.Window>().Concat(new[] { w }))
@@ -115,29 +96,24 @@ public partial class ChatViewModel : ViewModelBase
 				{
 					try
 					{
-						AttachedFileName = System.IO.Path.GetFileName(filePath);
-						AttachedFilePath = filePath;
-						AttachedFileContent = System.IO.File.ReadAllText(filePath);
+						Attachments.Add(new Models.AttachmentModel
+						{
+							Icon = "\uE8A5", // File icon (Segoe MDL2 Assets)
+							Label = System.IO.Path.GetFileName(filePath),
+							Context = filePath
+						});
 					}
 					catch (Exception ex)
 					{
 						System.Windows.MessageBox.Show($"Failed to read file: {ex.Message}", "Attach File Error");
-						AttachedFileName = null;
-						AttachedFilePath = null;
-						AttachedFileContent = null;
 					}
 				});
 			});
 
-		// Clear attachment command
-		private IRelayCommand _clearAttachmentCommand;
-		public IRelayCommand ClearAttachmentCommand =>
-			_clearAttachmentCommand ??= new CommunityToolkit.Mvvm.Input.RelayCommand(() =>
-			{
-				AttachedFileName = null;
-				AttachedFilePath = null;
-				AttachedFileContent = null;
-			});
+		// Clear all attachments command
+		private IRelayCommand _clearAttachmentsCommand;
+		public IRelayCommand ClearAttachmentsCommand =>
+			_clearAttachmentsCommand ??= new CommunityToolkit.Mvvm.Input.RelayCommand(() => Attachments.Clear());
 
 		// Slash command autocomplete state for binding
 		private ObservableCollection<OllamaAgent.VSIX.Models.SlashCommand> _slashCommandSuggestions = new ObservableCollection<OllamaAgent.VSIX.Models.SlashCommand>();
@@ -403,10 +379,16 @@ public partial class ChatViewModel : ViewModelBase
 				{
 					contextBlock += $"// Symbols in active file:\n{symbolSummary}\n";
 				}
-				// Inject attached file content if present
-				if (!string.IsNullOrEmpty(AttachedFileName) && !string.IsNullOrEmpty(AttachedFileContent))
+				// Inject all attached files' content if present
+				if (Attachments != null && Attachments.Count > 0)
 				{
-					contextBlock += $"// Attached file: {AttachedFileName}\n{AttachedFileContent}\n";
+					foreach (var attachment in Attachments)
+					{
+						if (!string.IsNullOrEmpty(attachment.Label) && !string.IsNullOrEmpty(attachment.Content))
+						{
+							contextBlock += $"// Attached file: {attachment.Label}\n{attachment.Content}\n";
+						}
+					}
 				}
 				// Inject solution tree if requested
 				if (!string.IsNullOrEmpty(solutionTree))
@@ -432,10 +414,8 @@ public partial class ChatViewModel : ViewModelBase
 					var safeOutput = outputContent.Length > 16000 ? outputContent.Substring(0, 16000) + "\n// ...truncated..." : outputContent;
 					contextBlock += safeOutput + "\n";
 				}
-				// Clear attachment after sending
-				AttachedFileName = null;
-				AttachedFilePath = null;
-				AttachedFileContent = null;
+				// Clear all attachments after sending
+				Attachments.Clear();
 
 				// --- System Instruction Prepending ---
 				string prompt = string.Empty;

@@ -21,9 +21,22 @@ namespace OllamaAgent.VSIX.ViewModels
 			}
 		}
 
+		/// <summary>
+		/// Raised when the View should display the attach/context menu.
+		/// The View (XAML code-behind) should subscribe and open the menu.
+		/// </summary>
+		public event System.Action OnShowAttachMenuRequested;
 
 
 		// Menu commands (all async, lazy-initialized)
+
+		// Command to trigger the attach menu popup (for + button)
+		private IRelayCommand _showAttachMenuCommand;
+		public IRelayCommand ShowAttachMenuCommand =>
+			_showAttachMenuCommand ??= new RelayCommand(() =>
+			{
+				OnShowAttachMenuRequested?.Invoke();
+			});
 
 		private IAsyncRelayCommand _attachActiveDocumentCommand;
 		public IAsyncRelayCommand AttachActiveDocumentCommand =>
@@ -97,62 +110,6 @@ namespace OllamaAgent.VSIX.ViewModels
 				await Task.CompletedTask;
 			});
 
-		private async Task AttachActiveDocument()
-		{
-			// Attach the currently active document in the editor as chat context
-			await AttachDocumentContextAsync();
-		}
-
-		private async Task AttachSolution()
-		{
-			// Attach the current solution file as chat context
-			await AttachSolutionContextAsync();
-		}
-
-		private async Task AttachFiles()
-		{
-			// Prompt user to select files and attach them as chat context
-			await AttachFilesContextAsync();
-		}
-
-		private async Task AttachClasses()
-		{
-			// Prompt user to select classes and attach them as chat context
-			await AttachClassesContextAsync();
-		}
-
-		private async Task AttachMethods()
-		{
-			// Prompt user to select methods and attach them as chat context
-			await AttachMethodsContextAsync();
-		}
-
-		private async Task AttachOutputLogs()
-		{
-			// Attach the current output window logs as chat context
-			await AttachOutputLogsContextAsync();
-		}
-
-		private async Task AttachMcpPrompts()
-		{
-			// Attach MCP prompt examples/templates as chat context
-			await AttachMcpPromptsContextAsync();
-		}
-
-		private async Task AttachMcpResources()
-		{
-			// Attach MCP resource documentation as chat context
-			await AttachMcpResourcesContextAsync();
-		}
-
-		private async Task UploadImage()
-		{
-			// Prompt user to select an image and upload it as chat context
-			await UploadImageContextAsync();
-		}
-
-
-
 		private IAsyncRelayCommand _toggleAutoAttachCommand;
 		public IAsyncRelayCommand ToggleAutoAttachCommand =>
 			_toggleAutoAttachCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
@@ -160,19 +117,5 @@ namespace OllamaAgent.VSIX.ViewModels
 				AutoAttachActiveDocument = !AutoAttachActiveDocument;
 				await Task.CompletedTask;
 			});
-
-		// --- Placeholders for actual context attachment logic ---
-		// Implement these methods to integrate with your context system
-		private async Task AttachDocumentContextAsync() { /* TODO: Integrate with document context system */ await Task.CompletedTask; }
-		private async Task AttachSolutionContextAsync() { /* TODO: Integrate with solution context system */ await Task.CompletedTask; }
-		private async Task AttachFilesContextAsync() { /* TODO: Integrate with file picker and context system */ await Task.CompletedTask; }
-		private async Task AttachClassesContextAsync() { /* TODO: Integrate with class picker and context system */ await Task.CompletedTask; }
-		private async Task AttachMethodsContextAsync() { /* TODO: Integrate with method picker and context system */ await Task.CompletedTask; }
-		private async Task AttachOutputLogsContextAsync() { /* TODO: Integrate with output logs system */ await Task.CompletedTask; }
-		private async Task AttachMcpPromptsContextAsync() { /* TODO: Integrate with MCP prompts system */ await Task.CompletedTask; }
-		private async Task AttachMcpResourcesContextAsync() { /* TODO: Integrate with MCP resources system */ await Task.CompletedTask; }
-		private async Task UploadImageContextAsync() { /* TODO: Integrate with image upload system */ await Task.CompletedTask; }
-
-		// partial void InitializeMenuCommands() { ... } // No longer needed with lazy properties
 	}
 }
