@@ -234,9 +234,7 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
@@ -244,7 +242,7 @@
                 <StackPanel
                     Grid.Row="0"
                     Grid.Column="0"
-                    Grid.ColumnSpan="5"
+                    Grid.ColumnSpan="3"
                     Orientation="Horizontal">
                     <Border
                         Margin="5,0,0,0"
@@ -301,7 +299,7 @@
                 <Grid
                     Grid.Row="1"
                     Grid.Column="0"
-                    Grid.ColumnSpan="5"
+                    Grid.ColumnSpan="3"
                     HorizontalAlignment="Stretch">
                     <TextBox
                         x:Name="InputBox"
@@ -362,7 +360,6 @@
                 <ComboBox
                     Grid.Row="2"
                     Grid.Column="0"
-                    Grid.ColumnSpan="3"
                     Width="Auto"
                     MinWidth="200"
                     Margin="5"
@@ -375,8 +372,8 @@
                 <!--  Tools Button  -->
                 <Button
                     Grid.Row="2"
-                    Grid.Column="3"
-                    Margin="0"
+                    Grid.Column="1"
+                    Margin="2"
                     Command="{Binding ToolsCommand}"
                     Content="&#xf0ad;"
                     FontFamily="{StaticResource FASolid}"
@@ -386,8 +383,8 @@
                 <!--  Send Button  -->
                 <Button
                     Grid.Row="2"
-                    Grid.Column="4"
-                    Margin="0"
+                    Grid.Column="2"
+                    Margin="6"
                     Command="{Binding SendCommand}"
                     Content="&#xf1d8;"
                     FontFamily="{StaticResource FASolid}"
@@ -398,8 +395,8 @@
                 <!--  Stop Streaming Button  -->
                 <Button
                     Grid.Row="2"
-                    Grid.Column="4"
-                    Margin="0"
+                    Grid.Column="2"
+                    Margin="6"
                     Command="{Binding StopStreamingCommand}"
                     Content="&#xf04d;"
                     FontFamily="{StaticResource FASolid}"
