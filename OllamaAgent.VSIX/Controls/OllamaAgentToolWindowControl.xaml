@@ -390,7 +390,7 @@
                     FontFamily="{StaticResource FASolid}"
                     Style="{StaticResource ToolbarIconButtonStyle}"
                     ToolTip="Send"
-                    Visibility="{Binding IsStreaming, Converter={StaticResource InverseBoolToVis}}" />
+                    Visibility="{Binding IsAwaitingAIResponse, Converter={StaticResource InverseBoolToVis}}" />
 
                 <!--  Stop Streaming Button  -->
                 <Button
@@ -403,7 +403,7 @@
                     Foreground="#F36A77"
                     Style="{StaticResource ToolbarIconButtonStyle}"
                     ToolTip="Stop"
-                    Visibility="{Binding IsStreaming, Converter={StaticResource BoolToVis}}" />
+                    Visibility="{Binding IsAwaitingAIResponse, Converter={StaticResource BoolToVis}}" />
             </Grid>
         </Border>
 
@@ -415,6 +415,6 @@
             FontStyle="Italic"
             Foreground="Gray"
             Text="Ollama is typing... |"
-            Visibility="{Binding IsStreaming, Converter={StaticResource BoolToVis}}" />
+            Visibility="{Binding IsAwaitingAIResponse, Converter={StaticResource BoolToVis}}" />
     </Grid>
 </UserControl>

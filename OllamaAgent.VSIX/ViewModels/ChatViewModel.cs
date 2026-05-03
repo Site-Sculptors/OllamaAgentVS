@@ -433,8 +433,7 @@ namespace OllamaAgent.VSIX.ViewModels
 				prompt += $"Given the following conversation, reply as the assistant. Also, suggest a concise thread title (max 5 words) that summarizes the conversation so far. Format your response as:\nMessage: <your reply>\nTitle: <suggested title>\n\nConversation:\n{conversation}\nUser: {userInput}";
 
 				// --- Streaming response ---
-				_isStreaming = true;
-				OnPropertyChanged(nameof(IsStreaming));
+			   IsAwaitingAIResponse = true;
 				_stopStreamingCts = new System.Threading.CancellationTokenSource();
 				var userMsg = ActiveThread.Messages.LastOrDefault(m => m.Role == ChatRole.User);
 			   var aiMsg = new AIChatMessage(string.Empty);
@@ -470,38 +469,48 @@ namespace OllamaAgent.VSIX.ViewModels
 						   sb.Append(fragment);
 						   aiMsg.Content = sb.ToString();
 						   OnPropertyChanged(nameof(ChatHistory));
-						   OnPropertyChanged(nameof(IsStreaming));
+							  // No need to update IsAwaitingAIResponse here; only after full response
 					   },
 					   _stopStreamingCts.Token
 				   );
 			   });
 			   // After streaming, extract only the message part if present
-			   var fullResponse = sb.ToString();
-			   var messageText = fullResponse;
-			   var messageIdx = fullResponse.IndexOf("Message:", StringComparison.OrdinalIgnoreCase);
-			   if (messageIdx >= 0)
+				  var fullResponse = sb.ToString();
+			   string messageText;
+			   var hasMessage = fullResponse.Contains("Message:", StringComparison.OrdinalIgnoreCase);
+			   var hasTitle = fullResponse.Contains("Title:", StringComparison.OrdinalIgnoreCase);
+			   if (hasMessage)
 			   {
-				   // Find the end of the message section (either next Title: or end of string)
+				   var messageIdx = fullResponse.IndexOf("Message:", StringComparison.OrdinalIgnoreCase);
 				   var titleIdx = fullResponse.IndexOf("Title:", messageIdx, StringComparison.OrdinalIgnoreCase);
 				   if (titleIdx > messageIdx)
-				   {
 					   messageText = fullResponse.Substring(messageIdx + 8, titleIdx - (messageIdx + 8)).Trim();
-				   }
 				   else
-				   {
 					   messageText = fullResponse.Substring(messageIdx + 8).Trim();
-				   }
+			   }
+			   else if (hasTitle)
+			   {
+				   // Optionally extract or show the title, or fallback to full response
+				   messageText = fullResponse.Trim();
+			   }
+			   else
+			   {
+				   messageText = fullResponse.Trim();
 			   }
 			   aiMsg.Content = messageText;
 			   OnPropertyChanged(nameof(ChatHistory));
-			   System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Streaming ended at {DateTime.Now:HH:mm:ss.fff}");
-			   _isStreaming = false;
-			   OnPropertyChanged(nameof(IsStreaming));
+				  System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Streaming ended at {DateTime.Now:HH:mm:ss.fff}");
+			   IsAwaitingAIResponse = false;
 			   await SaveThreadAsync(ActiveThread);
 			});
 
-		private bool _isStreaming = false;
-		public bool IsStreaming => _isStreaming;
+
+		private bool _isAwaitingAIResponse = false;
+		public bool IsAwaitingAIResponse
+		{
+			get => _isAwaitingAIResponse;
+			private set { _isAwaitingAIResponse = value; OnPropertyChanged(); }
+		}
 
 		private System.Threading.CancellationTokenSource _stopStreamingCts;
 		private IRelayCommand _stopStreamingCommand;
@@ -509,7 +518,7 @@ namespace OllamaAgent.VSIX.ViewModels
 			_stopStreamingCommand ??= new CommunityToolkit.Mvvm.Input.RelayCommand(() =>
 			{
 				_stopStreamingCts?.Cancel();
-			}, () => IsStreaming);
+			}, () => IsAwaitingAIResponse);
 
 		private async Task CreateAndSwitchToNewThreadAsync()
 		{
