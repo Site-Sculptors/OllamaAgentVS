@@ -459,20 +459,32 @@ namespace OllamaAgent.VSIX.ViewModels
 			   System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Streaming started at {DateTime.Now:HH:mm:ss.fff}");
 				  await Task.Run(async () =>
 			   {
-				   await _ollamaChatService.StreamChatAsync(
-					   OllamaEndpoint,
-					   SelectedChatModel.Name,
-					   chatMessages,
-					   fragment =>
+				  await _ollamaChatService.StreamChatAsync(
+				   OllamaEndpoint,
+				   SelectedChatModel.Name,
+				   chatMessages,
+				   fragment =>
+				   {
+					   System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Fragment received at {DateTime.Now:HH:mm:ss.fff}: '{fragment?.Substring(0, Math.Min(fragment.Length, 40))}'");
+					   sb.Append(fragment);
+					   var content = sb.ToString();
+					   var dispatcher = System.Windows.Application.Current?.Dispatcher;
+					   if (dispatcher != null && !dispatcher.CheckAccess())
 					   {
-						   System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Fragment received at {DateTime.Now:HH:mm:ss.fff}: '{fragment?.Substring(0, Math.Min(fragment.Length, 40))}'");
-						   sb.Append(fragment);
-						   aiMsg.Content = sb.ToString();
+						   dispatcher.Invoke(() => {
+							   aiMsg.Content = content;
+							   OnPropertyChanged(nameof(ChatHistory));
+						   });
+					   }
+					   else
+					   {
+						   aiMsg.Content = content;
 						   OnPropertyChanged(nameof(ChatHistory));
-							  // No need to update IsAwaitingAIResponse here; only after full response
-					   },
-					   _stopStreamingCts.Token
-				   );
+					   }
+					   // No need to update IsAwaitingAIResponse here; only after full response
+				   },
+				   _stopStreamingCts.Token
+			   );
 			   });
 			   // After streaming, extract only the message part if present
 				  var fullResponse = sb.ToString();
