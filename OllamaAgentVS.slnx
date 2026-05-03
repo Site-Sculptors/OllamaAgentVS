@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="../../AppsExamples/vs-extension-llmcopilot-main/LLMCopilot/vs2022/LLMCopilot.csproj" Id="cec2664c-1b3e-4aa1-9369-6eae36e1c9c2" />
   <Project Path="OllamaAgent.VSIX/OllamaAgent.VSIX.csproj">
     <Deploy />
   </Project>

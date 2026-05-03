@@ -50,8 +50,14 @@ namespace OllamaAgent.VSIX
 		   return Task.FromResult<object>(new Services.ModelStore());
 	   }, promote: true);
 
+		  // Register IOllamaApiService singleton (must be before IOllamaChatService)
+	   this.AddService(typeof(Services.IOllamaApiService), (container, cancellationToken, serviceType) =>
+	   {
+		   return Task.FromResult<object>(new Services.OllamaApiService());
+	   }, promote: true);
+
 	   // Register IOllamaAgentService singleton
-		 this.AddService(typeof(Services.IOllamaAgentService), (container, cancellationToken, serviceType) =>
+	   this.AddService(typeof(Services.IOllamaAgentService), (container, cancellationToken, serviceType) =>
 	   {
 		   return Task.FromResult<object>(new Services.OllamaAgentService());
 	   }, promote: true);
@@ -63,9 +69,10 @@ namespace OllamaAgent.VSIX
 	   }, promote: true);
 
 	   // Register IOllamaChatService singleton
-	   this.AddService(typeof(Services.IOllamaChatService), (container, cancellationToken, serviceType) =>
+		  this.AddService(typeof(Services.IOllamaChatService), (container, cancellationToken, serviceType) =>
 	   {
-		   return Task.FromResult<object>(new Services.OllamaChatService());
+		   var apiService = (Services.IOllamaApiService)((IServiceProvider)container).GetService(typeof(Services.IOllamaApiService));
+		   return Task.FromResult<object>(new Services.OllamaChatService(apiService));
 	   }, promote: true);
 
 	 // Register CustomInstructionsService singleton

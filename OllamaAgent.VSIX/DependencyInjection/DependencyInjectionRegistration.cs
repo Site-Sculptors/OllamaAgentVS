@@ -25,9 +25,10 @@ public static class DependencyInjectionRegistration
 
 	public static void ConfigureServices(IServiceCollection services)
 	{
-		services.AddSingleton<IOllamaAgentService, OllamaAgentService>();
-		services.AddSingleton<IOllamaChatService, OllamaChatService>();
-		services.AddSingleton<IOllamaModelService, OllamaModelService>();
+	   services.AddSingleton<IOllamaApiService, OllamaApiService>();
+	   services.AddSingleton<IOllamaAgentService, OllamaAgentService>();
+	   services.AddSingleton<IOllamaChatService, OllamaChatService>();
+	   services.AddSingleton<IOllamaModelService, OllamaModelService>();
 	}
 
 	public static void ConfigureViewModels(IServiceCollection services)

@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:converters="clr-namespace:OllamaAgent.VSIX.Converters"
     xmlns:viewModels="clr-namespace:OllamaAgent.VSIX.ViewModels"
-    xmlns:watermark="clr-namespace:OllamaAgent.VSIX.Controls">
+    xmlns:controls="clr-namespace:OllamaAgent.VSIX.Controls">
 
     <UserControl.Resources>
         <ResourceDictionary>
@@ -23,7 +23,7 @@
             <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
 
             <!--  Template selector for chat messages  -->
-            <watermark:ChatMessageTemplateSelector
+            <controls:ChatMessageTemplateSelector
                 x:Key="ChatMessageTemplateSelector"
                 AITemplate="{StaticResource AIMessageTemplate}"
                 UserTemplate="{StaticResource UserMessageTemplate}" />
@@ -305,8 +305,8 @@
                         x:Name="InputBox"
                         MinHeight="60"
                         Margin="10"
-                        watermark:WatermarkService.Watermark="Chat with Ollama..."
-                        watermark:WatermarkService.WatermarkFontSize="12"
+                        controls:WatermarkService.Watermark="Chat with Ollama..."
+                        controls:WatermarkService.WatermarkFontSize="12"
                         AcceptsReturn="True"
                         Background="{DynamicResource ColorBackgroundInput}"
                         BorderThickness="0"

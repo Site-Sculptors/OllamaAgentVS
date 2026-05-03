@@ -20,7 +20,7 @@ namespace OllamaAgent.VSIX.ViewModels
 {
 	public class ChatViewModel : ViewModelBase
 	{
-		private static readonly ObservableCollection<ChatMessage> _emptyMessages = new ObservableCollection<ChatMessage>();
+	   private static readonly ObservableCollection<ChatMessageBase> _emptyMessages = new ObservableCollection<ChatMessageBase>();
 		private readonly IOllamaChatService _ollamaChatService;
 		private readonly IChatThreadStore _chatThreadStore;
 		private readonly IEditorContextService _editorContextService;
@@ -44,7 +44,8 @@ namespace OllamaAgent.VSIX.ViewModels
 			_errorListService = errorListService;
 			_outputWindowContextService = outputWindowContextService;
 			Threads = new ObservableCollection<ChatThread>();
-			_ = LoadThreadsForCurrentSolutionAsync();
+			// Ensure threads are loaded before proceeding
+			ThreadHelper.JoinableTaskFactory.Run(async () => await LoadThreadsForCurrentSolutionAsync());
 
 			SetActiveDocumentAsAttachedFile();
 		}
@@ -158,20 +159,22 @@ namespace OllamaAgent.VSIX.ViewModels
 		public ObservableCollection<ChatThread> Threads { get; }
 
 		private ChatThread _activeThread;
-		public ChatThread ActiveThread
-		{
-			get => _activeThread;
-			set
-			{
-				// Always update and notify, even if the same instance, to force UI refresh
-				_activeThread = value;
-				OnPropertyChanged();
-				OnPropertyChanged(nameof(ChatHistory));
-				// Hide history view when a thread is selected
-				if (value != null && IsHistoryVisible)
-					IsHistoryVisible = false;
-			}
-		}
+	   public ChatThread ActiveThread
+	   {
+		   get => _activeThread;
+		   set
+		   {
+			   _activeThread = value;
+			   OnPropertyChanged();
+			   OnPropertyChanged(nameof(ChatHistory));
+			   // Hide history view when a thread is selected
+			   if (value != null && IsHistoryVisible)
+				   IsHistoryVisible = false;
+			   // Update SendCommand CanExecute
+			   if (_sendCommand is AsyncRelayCommand arc)
+				   arc.RaiseCanExecuteChanged();
+		   }
+	   }
 
 		// Synchronize thread selection with the UI
 		public ChatThread CurrentThread
@@ -180,7 +183,7 @@ namespace OllamaAgent.VSIX.ViewModels
 			set => ActiveThread = value;
 		}
 
-		public ObservableCollection<ChatMessage> ChatHistory => ActiveThread?.Messages ?? _emptyMessages;
+	   public ObservableCollection<ChatMessageBase> ChatHistory => ActiveThread?.Messages ?? _emptyMessages;
 
 		private async Task LoadThreadsForCurrentSolutionAsync()
 		{
@@ -206,7 +209,9 @@ namespace OllamaAgent.VSIX.ViewModels
 				ActiveThread = match;
 			else if (Threads.Count > 0)
 				ActiveThread = Threads[0];
-			else
+
+			// Guarantee ActiveThread is set
+			if (ActiveThread == null)
 				await CreateAndSwitchToNewThreadAsync();
 		}
 
@@ -233,17 +238,18 @@ namespace OllamaAgent.VSIX.ViewModels
 
 
 		private string _input;
-		public string Input
-		{
-			get => _input;
-			set
-			{
-				_input = value;
-				OnPropertyChanged();
-				if (_sendCommand is AsyncRelayCommand arc)
-					arc.RaiseCanExecuteChanged();
-			}
-		}
+	   public string Input
+	   {
+		   get => _input;
+		   set
+		   {
+			   _input = value;
+			   OnPropertyChanged();
+			   if (_sendCommand is AsyncRelayCommand arc)
+				   arc.RaiseCanExecuteChanged();
+		   }
+	   }
+
 
 
 
@@ -421,9 +427,9 @@ namespace OllamaAgent.VSIX.ViewModels
 				prompt += contextBlock;
 
 				// --- Conversation Context ---
-				ActiveThread.Messages.Add(new ChatMessage { Role = ChatRole.User, Message = (commandUsed != null ? commandUsed + " " : "") + userInput });
+			   ActiveThread.Messages.Add(new UserChatMessage((commandUsed != null ? commandUsed + " " : "") + userInput));
 				Input = string.Empty;
-				var conversation = string.Join("\n", ActiveThread.Messages.Select(m => $"{m.Role}: {m.Message}"));
+			   var conversation = string.Join("\n", ActiveThread.Messages.Select(m => $"{m.Role}: {m.Content}"));
 				prompt += $"Given the following conversation, reply as the assistant. Also, suggest a concise thread title (max 5 words) that summarizes the conversation so far. Format your response as:\nMessage: <your reply>\nTitle: <suggested title>\n\nConversation:\n{conversation}\nUser: {userInput}";
 
 				// --- Streaming response ---
@@ -431,21 +437,19 @@ namespace OllamaAgent.VSIX.ViewModels
 				OnPropertyChanged(nameof(IsStreaming));
 				_stopStreamingCts = new System.Threading.CancellationTokenSource();
 				var userMsg = ActiveThread.Messages.LastOrDefault(m => m.Role == ChatRole.User);
-				var aiMsg = new ChatMessage { Role = ChatRole.AI, Message = string.Empty };
-				ActiveThread.Messages.Add(aiMsg);
+			   var aiMsg = new AIChatMessage(string.Empty);
+			   ActiveThread.Messages.Add(aiMsg);
 				OnPropertyChanged(nameof(ChatHistory));
 
 				// Build chat history for Ollama
-				var chatMessages = ActiveThread.Messages
-					.Select(m => (role: m.Role == ChatRole.User ? "user" : "assistant", content: m.Message))
-					.ToList();
+			   var chatMessages = ActiveThread.Messages
+				   .Select(m => (role: m.Role == ChatRole.User ? "user" : "assistant", content: m.Content))
+				   .ToList();
 
 				// Remove the last AI message (the one we're about to stream)
 				if (chatMessages.Count > 0 && chatMessages.Last().role == "assistant")
 					chatMessages.RemoveAt(chatMessages.Count - 1);
 
-				// Add the new user message
-				chatMessages.Add(("user", userInput));
 
 				// System prompt as a system message if present
 				if (!string.IsNullOrEmpty(prompt))
@@ -454,7 +458,7 @@ namespace OllamaAgent.VSIX.ViewModels
 				// Streaming callback
 			   var sb = new System.Text.StringBuilder();
 			   System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Streaming started at {DateTime.Now:HH:mm:ss.fff}");
-			   await Task.Run(async () =>
+				  await Task.Run(async () =>
 			   {
 				   await _ollamaChatService.StreamChatAsync(
 					   OllamaEndpoint,
@@ -464,13 +468,32 @@ namespace OllamaAgent.VSIX.ViewModels
 					   {
 						   System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Fragment received at {DateTime.Now:HH:mm:ss.fff}: '{fragment?.Substring(0, Math.Min(fragment.Length, 40))}'");
 						   sb.Append(fragment);
-						   aiMsg.Message = sb.ToString();
+						   aiMsg.Content = sb.ToString();
 						   OnPropertyChanged(nameof(ChatHistory));
 						   OnPropertyChanged(nameof(IsStreaming));
 					   },
 					   _stopStreamingCts.Token
 				   );
 			   });
+			   // After streaming, extract only the message part if present
+			   var fullResponse = sb.ToString();
+			   var messageText = fullResponse;
+			   var messageIdx = fullResponse.IndexOf("Message:", StringComparison.OrdinalIgnoreCase);
+			   if (messageIdx >= 0)
+			   {
+				   // Find the end of the message section (either next Title: or end of string)
+				   var titleIdx = fullResponse.IndexOf("Title:", messageIdx, StringComparison.OrdinalIgnoreCase);
+				   if (titleIdx > messageIdx)
+				   {
+					   messageText = fullResponse.Substring(messageIdx + 8, titleIdx - (messageIdx + 8)).Trim();
+				   }
+				   else
+				   {
+					   messageText = fullResponse.Substring(messageIdx + 8).Trim();
+				   }
+			   }
+			   aiMsg.Content = messageText;
+			   OnPropertyChanged(nameof(ChatHistory));
 			   System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Streaming ended at {DateTime.Now:HH:mm:ss.fff}");
 			   _isStreaming = false;
 			   OnPropertyChanged(nameof(IsStreaming));

@@ -12,7 +12,7 @@
             Foreground="{DynamicResource ColorTextInput}"
             IsReadOnly="True"
             IsTabStop="True"
-            Text="{Binding Message}"
+            Text="{Binding Content}"
             TextWrapping="Wrap" />
     </DataTemplate>
 </ResourceDictionary>

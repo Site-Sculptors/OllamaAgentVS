@@ -13,14 +13,15 @@ namespace OllamaAgent.VSIX.Controls
 
 		public override DataTemplate SelectTemplate(object item, DependencyObject container)
 		{
-			var message = item as ChatMessage;
-			if (message == null)
-				return base.SelectTemplate(item, container);
-
-			if (message.Role == ChatRole.User)
-				return UserTemplate;
-			else
-				return AITemplate;
+			switch (item)
+			{
+				case UserChatMessage:
+					return UserTemplate;
+				case AIChatMessage:
+					return AITemplate;
+				default:
+					return base.SelectTemplate(item, container);
+			}
 		}
 	}
 }

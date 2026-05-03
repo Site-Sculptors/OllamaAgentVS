@@ -4,8 +4,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 using System.Threading.Tasks;
 using OllamaAgent.VSIX.Models;
 using OllamaAgent.VSIX.Properties;
@@ -46,13 +45,13 @@ namespace OllamaAgent.VSIX.Services
 				Directory.CreateDirectory(dir);
 				var file = Path.Combine(dir, thread.Id + ".json");
 				var dto = ToDto(thread);
-				var options = new JsonSerializerOptions
-				{
-					WriteIndented = true,
-					Converters = { new JsonStringEnumConverter() }
-				};
-				var json = JsonSerializer.Serialize(dto, options);
-			await Task.Run(() => File.WriteAllText(file, json));
+			   var settings = new JsonSerializerSettings
+			   {
+				   TypeNameHandling = TypeNameHandling.Auto,
+				   Formatting = Formatting.Indented
+			   };
+			   var json = JsonConvert.SerializeObject(dto, settings);
+			   await Task.Run(() => File.WriteAllText(file, json));
 			}
 			catch (Exception ex)
 			{
@@ -86,12 +85,12 @@ namespace OllamaAgent.VSIX.Services
 			{
 				try
 				{
-				var json = await Task.Run(() => File.ReadAllText(file));
-					var options = new JsonSerializerOptions
+					var json = await Task.Run(() => File.ReadAllText(file));
+					var settings = new JsonSerializerSettings
 					{
-						Converters = { new JsonStringEnumConverter() }
+						TypeNameHandling = TypeNameHandling.Auto
 					};
-					var dto = JsonSerializer.Deserialize<ChatThreadDto>(json, options);
+					var dto = JsonConvert.DeserializeObject<ChatThreadDto>(json, settings);
 					if (dto != null)
 						result.Add(FromDto(dto));
 				}
@@ -100,7 +99,20 @@ namespace OllamaAgent.VSIX.Services
 					Debug.WriteLine($"[ChatThreadStore] Failed to load {file}: {ex}");
 				}
 			}
-			return result;
+			// Only keep threads that are usable (have messages or are new)
+			var usableThreads = result.Where(t => t.Messages != null && t.Messages.Count > 0).ToList();
+			// If none are usable, create a new thread
+			if (usableThreads.Count == 0)
+			{
+				usableThreads.Add(new ChatThread
+				{
+					Name = "New Thread",
+					CreatedAt = DateTime.UtcNow,
+					LastActivityAt = DateTime.UtcNow,
+					Messages = new ObservableCollection<ChatMessageBase>()
+				});
+			}
+			return usableThreads;
 		}
 
 		// DTO for serialization
@@ -113,37 +125,37 @@ namespace OllamaAgent.VSIX.Services
 			public bool IsAutoNamed { get; set; }
 			public DateTime CreatedAt { get; set; }
 			public DateTime LastActivityAt { get; set; }
-			public List<ChatMessage> Messages { get; set; }
+		   public List<ChatMessageBase> Messages { get; set; }
 		}
 
-		private static ChatThreadDto ToDto(ChatThread thread)
-		{
-			return new ChatThreadDto
-			{
-				Id = thread.Id,
-				Name = thread.Name,
-				SolutionPath = thread.SolutionPath,
-				ModelName = thread.ModelName,
-				IsAutoNamed = thread.IsAutoNamed,
-				CreatedAt = thread.CreatedAt,
-				LastActivityAt = thread.LastActivityAt,
-				Messages = thread.Messages?.ToList() ?? new List<ChatMessage>()
-			};
-		}
+		   private static ChatThreadDto ToDto(ChatThread thread)
+		   {
+			   return new ChatThreadDto
+			   {
+				   Id = thread.Id,
+				   Name = thread.Name,
+				   SolutionPath = thread.SolutionPath,
+				   ModelName = thread.ModelName,
+				   IsAutoNamed = thread.IsAutoNamed,
+				   CreatedAt = thread.CreatedAt,
+				   LastActivityAt = thread.LastActivityAt,
+				   Messages = thread.Messages?.ToList() ?? new List<ChatMessageBase>()
+			   };
+		   }
 
-		private static ChatThread FromDto(ChatThreadDto dto)
-		{
-			return new ChatThread
-			{
-				Id = dto.Id,
-				Name = dto.Name,
-				SolutionPath = dto.SolutionPath,
-				ModelName = dto.ModelName,
-				IsAutoNamed = dto.IsAutoNamed,
-				CreatedAt = dto.CreatedAt,
-				LastActivityAt = dto.LastActivityAt,
-				Messages = new ObservableCollection<ChatMessage>(dto.Messages ?? new List<ChatMessage>())
-			};
-		}
+		   private static ChatThread FromDto(ChatThreadDto dto)
+		   {
+			   return new ChatThread
+			   {
+				   Id = dto.Id,
+				   Name = dto.Name,
+				   SolutionPath = dto.SolutionPath,
+				   ModelName = dto.ModelName,
+				   IsAutoNamed = dto.IsAutoNamed,
+				   CreatedAt = dto.CreatedAt,
+				   LastActivityAt = dto.LastActivityAt,
+				   Messages = new ObservableCollection<ChatMessageBase>(dto.Messages ?? new List<ChatMessageBase>())
+			   };
+		   }
 	}
 }
