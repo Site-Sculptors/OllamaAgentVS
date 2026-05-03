@@ -83,6 +83,7 @@ You MUST verify:
 - VSCT GUID matches C# package GUID
 - Commands are bound under correct Visual Studio menu (Extensions)
 - Always use .NET best practices and MVVM pattern for WPF code. Move business logic, data, and commands to the ViewModel. Keep code-behind minimal and only for UI-specific or theme-related logic. Use ICommand for button actions and data binding for UI interaction.
+- Keep property setters simple and side-effect free. Avoid embedding UI selection workflow or business logic in property setters. Implement selection workflows using ICommand implementations, explicit command handlers, or event-handling logic in the ViewModel (or minimal, explicit code-behind when appropriate).
 
 If any step is unverified:
 Do NOT assume later steps are correct.

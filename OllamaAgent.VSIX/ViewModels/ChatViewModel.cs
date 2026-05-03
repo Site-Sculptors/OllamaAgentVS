@@ -164,56 +164,21 @@ namespace OllamaAgent.VSIX.ViewModels
 			get => _activeThread;
 			set
 			{
-				bool isSame = ReferenceEquals(_activeThread, value);
 				_activeThread = value;
-				OnPropertyChanged();
-				OnPropertyChanged(nameof(ChatHistory));
-				// Hide history view when a thread is selected
-				if (value != null && IsHistoryVisible)
-					IsHistoryVisible = false;
-				// Update SendCommand CanExecute
-				if (_sendCommand is AsyncRelayCommand arc)
-					arc.RaiseCanExecuteChanged();
-				// Force UI update even if same thread is selected
-				if (isSame)
-				{
-					OnPropertyChanged();
-					OnPropertyChanged(nameof(ChatHistory));
-				}
+				RefreshActiveThread();
 			}
 		}
 
-		// Synchronize thread selection with the UI
-		public ChatThread CurrentThread
+		public ObservableCollection<ChatMessageBase> ChatHistory => ActiveThread?.Messages ?? _emptyMessages;
+
+		private void RefreshActiveThread()
 		{
-			get => ActiveThread;
-			set => ActiveThread = value;
+			OnPropertyChanged(nameof(ActiveThread));
+			OnPropertyChanged(nameof(ChatHistory));
+
+			if (_sendCommand is AsyncRelayCommand arc)
+				arc.RaiseCanExecuteChanged();
 		}
-
-		// Selected thread for UI (history ListBox)
-		private ChatThread _selectedThread;
-		public ChatThread SelectedThread
-		{
-			get => _selectedThread;
-			set
-			{
-				_selectedThread = value;
-				OnPropertyChanged();
-			}
-		}
-
-		// Command to handle thread selection from UI
-		private IRelayCommand _selectThreadCommand;
-		public IRelayCommand SelectThreadCommand =>
-			_selectThreadCommand ??= new RelayCommand<ChatThread>(thread =>
-			{
-				if (thread != null)
-				{
-					ActiveThread = thread;
-				}
-			});
-
-	   public ObservableCollection<ChatMessageBase> ChatHistory => ActiveThread?.Messages ?? _emptyMessages;
 
 		private async Task LoadThreadsForCurrentSolutionAsync()
 		{
@@ -229,22 +194,22 @@ namespace OllamaAgent.VSIX.ViewModels
 			foreach (var t in threads.OrderByDescending(t => t.LastActivityAt))
 				Threads.Add(t);
 
-			// Always set ActiveThread to the instance from the new collection (by Id)
-			ChatThread match = null;
-			if (ActiveThread != null)
-				match = Threads.FirstOrDefault(t => t.Id == ActiveThread.Id);
-			if (match == null)
-				match = Threads.FirstOrDefault(t => t.SolutionPath == solutionPath);
+			// Only reassign ActiveThread if it's not already valid in the new collection
+			var currentMatch = ActiveThread != null ? Threads.FirstOrDefault(t => t.Id == ActiveThread.Id) : null;
+			if (currentMatch != null)
+			{
+				ActiveThread = currentMatch; // repoint to new instance but same thread
+				return;                      // don't fall through and overwrite it
+			}
+
+			ChatThread match = Threads.FirstOrDefault(t => t.SolutionPath == solutionPath)
+							?? Threads.FirstOrDefault();
+
 			if (match != null)
 				ActiveThread = match;
-			else if (Threads.Count > 0)
-				ActiveThread = Threads[0];
-
-			// Guarantee ActiveThread is set
-			if (ActiveThread == null)
+			else
 				await CreateAndSwitchToNewThreadAsync();
 		}
-
 
 		private async Task SaveThreadAsync(ChatThread thread)
 		{
@@ -256,6 +221,7 @@ namespace OllamaAgent.VSIX.ViewModels
 			Threads.Clear();
 			foreach (var t in sorted)
 				Threads.Add(t);
+
 			if (!string.IsNullOrEmpty(currentId))
 			{
 				var match = Threads.FirstOrDefault(t => t.Id == currentId);
@@ -280,15 +246,33 @@ namespace OllamaAgent.VSIX.ViewModels
 		   }
 	   }
 
-
-
-
-
 		private bool _isHistoryVisible;
 		public bool IsHistoryVisible
 		{
 			get => _isHistoryVisible;
 			set { _isHistoryVisible = value; OnPropertyChanged(); }
+		}
+
+		private IRelayCommand<ChatThread> _openThreadCommand;
+		public IRelayCommand<ChatThread> OpenThreadCommand =>
+			_openThreadCommand ??= new RelayCommand<ChatThread>(OpenThread);
+
+		private void OpenThread(ChatThread thread)
+		{
+			if (thread == null)
+			{
+				return;
+			}
+
+			if (ActiveThread != null && string.Equals(ActiveThread.Id, thread.Id, StringComparison.Ordinal))
+			{
+				IsHistoryVisible = false;
+				RefreshActiveThread();
+				return;
+			}
+
+			ActiveThread = thread;
+			IsHistoryVisible = false;
 		}
 
 		// SettingsCommand now inherited from ViewModelBase
@@ -572,14 +556,34 @@ namespace OllamaAgent.VSIX.ViewModels
 			   {
 				   messageText = fullResponse.Trim();
 			   }
-			   aiMsg.Content = messageText;
-			   // Update thread title if present
-			   if (!string.IsNullOrWhiteSpace(titleText))
+				  var dispatcher = System.Windows.Application.Current?.Dispatcher;
+			   if (dispatcher != null && !dispatcher.CheckAccess())
 			   {
-				   ActiveThread.Name = titleText;
-				   ActiveThread.IsAutoNamed = false;
+				   dispatcher.Invoke(() => {
+					   aiMsg.Content = messageText;
+					   // Update thread title if present
+					  if (!string.IsNullOrWhiteSpace(titleText))
+				   {
+					   // Always update if auto-named, or if the name is 'New Thread', or if the title is different
+					   if (ActiveThread.IsAutoNamed || string.Equals(ActiveThread.Name, "New Thread", StringComparison.OrdinalIgnoreCase) || !string.Equals(ActiveThread.Name, titleText, StringComparison.Ordinal))
+					   {
+						   ActiveThread.Name = titleText;
+						   ActiveThread.IsAutoNamed = false;
+					   }
+				   }
+					   OnPropertyChanged(nameof(ChatHistory));
+				   });
 			   }
-			   OnPropertyChanged(nameof(ChatHistory));
+			   else
+			   {
+				   aiMsg.Content = messageText;
+				   if (!string.IsNullOrWhiteSpace(titleText))
+				   {
+					   ActiveThread.Name = titleText;
+					   ActiveThread.IsAutoNamed = false;
+				   }
+				   OnPropertyChanged(nameof(ChatHistory));
+			   }
 			   System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Streaming ended at {DateTime.Now:HH:mm:ss.fff}");
 			   IsAwaitingAIResponse = false;
 			   await SaveThreadAsync(ActiveThread);

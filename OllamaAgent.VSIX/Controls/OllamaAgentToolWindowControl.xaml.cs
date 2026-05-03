@@ -1,14 +1,14 @@
-﻿using OllamaAgent.VSIX.Models;
-using System.Collections.ObjectModel;
-using System.Linq;
-
-using Microsoft.VisualStudio.PlatformUI;
+﻿using Microsoft.VisualStudio.PlatformUI;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 
+using OllamaAgent.VSIX.Models;
 using OllamaAgent.VSIX.ViewModels;
 
 using System;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Threading.Tasks;
 using System.Windows;
@@ -42,21 +42,7 @@ namespace OllamaAgent.VSIX.Controls
 				_ = InitializeAsync();
 			};
 
-			// Ensure models are always loaded when the chat window is activated or gains focus
-			this.IsVisibleChanged += (s, e) =>
-			{
-				if (this.IsVisible && _viewModel != null)
-				{
-					_ = _viewModel.SafeLoadAsync();
-				}
-			};
-			this.GotFocus += (s, e) =>
-			{
-				if (_viewModel != null)
-				{
-					_ = _viewModel.SafeLoadAsync();
-				}
-			};
+			// Only subscribe to document/tab change events for context updates. Do not update active document context on chat window focus.
 
 		}
 
@@ -100,6 +86,8 @@ namespace OllamaAgent.VSIX.Controls
 				_viewModel?.SetActiveDocumentAsAttachedFile();
 			});
 		}
+
+
 
 		//private void SetChatWindowColors()
 		//{
