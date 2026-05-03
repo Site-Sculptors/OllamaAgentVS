@@ -34,6 +34,9 @@ namespace OllamaAgent.VSIX.Controls
 			DataContext = viewModel;
 			_viewModel = viewModel;
 
+			// Subscribe to VS document/tab change events
+			SubscribeToDocumentEvents();
+
 			Loaded += (s, e) =>
 			{
 				_ = InitializeAsync();
@@ -55,6 +58,47 @@ namespace OllamaAgent.VSIX.Controls
 				}
 			};
 
+		}
+
+		private EnvDTE.Events _dteEvents;
+		private EnvDTE.WindowEvents _windowEvents;
+		private EnvDTE.DocumentEvents _documentEvents;
+
+		private void SubscribeToDocumentEvents()
+		{
+			ThreadHelper.ThrowIfNotOnUIThread();
+			var dte = (EnvDTE.DTE)ServiceProvider.GlobalProvider.GetService(typeof(EnvDTE.DTE));
+			if (dte == null)
+				return;
+
+			_dteEvents = dte.Events;
+			_windowEvents = _dteEvents.WindowEvents;
+			_documentEvents = _dteEvents.DocumentEvents;
+
+			if (_windowEvents != null)
+				_windowEvents.WindowActivated += WindowEvents_WindowActivated;
+			if (_documentEvents != null)
+			{
+				_documentEvents.DocumentOpened += DocumentEvents_DocumentChanged;
+				_documentEvents.DocumentSaved += DocumentEvents_DocumentChanged;
+			}
+		}
+
+		private void WindowEvents_WindowActivated(EnvDTE.Window gotFocus, EnvDTE.Window lostFocus)
+		{
+			// Only update if the active window is a document
+			ThreadHelper.Generic.BeginInvoke(() =>
+			{
+				_viewModel?.SetActiveDocumentAsAttachedFile();
+			});
+		}
+
+		private void DocumentEvents_DocumentChanged(EnvDTE.Document document)
+		{
+			ThreadHelper.Generic.BeginInvoke(() =>
+			{
+				_viewModel?.SetActiveDocumentAsAttachedFile();
+			});
 		}
 
 		//private void SetChatWindowColors()

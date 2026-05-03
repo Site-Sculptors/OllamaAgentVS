@@ -400,7 +400,7 @@
                     Command="{Binding StopStreamingCommand}"
                     Content="&#xf04d;"
                     FontFamily="{StaticResource FASolid}"
-                    Foreground="Red"
+                    Foreground="#F36A77"
                     Style="{StaticResource ToolbarIconButtonStyle}"
                     ToolTip="Stop"
                     Visibility="{Binding IsStreaming, Converter={StaticResource BoolToVis}}" />
@@ -410,7 +410,7 @@
         <!--  Typing Indicator / Blinking Cursor  -->
         <TextBlock
             Grid.Row="3"
-            Margin="10,0,0,10"
+            Margin="10,0,0,20"
             FontSize="13"
             FontStyle="Italic"
             Foreground="Gray"

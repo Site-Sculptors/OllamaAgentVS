@@ -49,7 +49,7 @@ namespace OllamaAgent.VSIX.ViewModels
 			SetActiveDocumentAsAttachedFile();
 		}
 
-		private void SetActiveDocumentAsAttachedFile()
+			   public void SetActiveDocumentAsAttachedFile()
 		{
 			ThreadHelper.ThrowIfNotOnUIThread();
 			var dte = (EnvDTE.DTE)ServiceProvider.GlobalProvider.GetService(typeof(EnvDTE.DTE));
@@ -452,26 +452,29 @@ namespace OllamaAgent.VSIX.ViewModels
 					chatMessages.Insert(0, ("system", prompt));
 
 				// Streaming callback
-				var sb = new System.Text.StringBuilder();
-				await Task.Run(async () =>
-					{
-						await _ollamaChatService.StreamChatAsync(
-							OllamaEndpoint,
-							SelectedChatModel.Name,
-							chatMessages,
-							fragment =>
-							{
-								sb.Append(fragment);
-								aiMsg.Message = sb.ToString();
-								OnPropertyChanged(nameof(ChatHistory));
-								OnPropertyChanged(nameof(IsStreaming));
-							},
-							_stopStreamingCts.Token
-						);
-					});
-				_isStreaming = false;
-				OnPropertyChanged(nameof(IsStreaming));
-				await SaveThreadAsync(ActiveThread);
+			   var sb = new System.Text.StringBuilder();
+			   System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Streaming started at {DateTime.Now:HH:mm:ss.fff}");
+			   await Task.Run(async () =>
+			   {
+				   await _ollamaChatService.StreamChatAsync(
+					   OllamaEndpoint,
+					   SelectedChatModel.Name,
+					   chatMessages,
+					   fragment =>
+					   {
+						   System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Fragment received at {DateTime.Now:HH:mm:ss.fff}: '{fragment?.Substring(0, Math.Min(fragment.Length, 40))}'");
+						   sb.Append(fragment);
+						   aiMsg.Message = sb.ToString();
+						   OnPropertyChanged(nameof(ChatHistory));
+						   OnPropertyChanged(nameof(IsStreaming));
+					   },
+					   _stopStreamingCts.Token
+				   );
+			   });
+			   System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Streaming ended at {DateTime.Now:HH:mm:ss.fff}");
+			   _isStreaming = false;
+			   OnPropertyChanged(nameof(IsStreaming));
+			   await SaveThreadAsync(ActiveThread);
 			});
 
 		private bool _isStreaming = false;

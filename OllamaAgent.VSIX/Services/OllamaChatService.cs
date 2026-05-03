@@ -94,34 +94,43 @@ public class OllamaChatService : IOllamaChatService
 using (var response = await _httpClient.PostAsync(url, content, token))
 			{
 				response.EnsureSuccessStatusCode();
-				using (var stream = await response.Content.ReadAsStreamAsync())
-				using (var reader = new System.IO.StreamReader(stream))
-				{
-					string line;
-					while ((line = await reader.ReadLineAsync()) != null)
-					{
-						if (token.IsCancellationRequested)
-							break;
-						if (string.IsNullOrWhiteSpace(line))
-							continue;
-						try
-						{
-							using (var doc = JsonDocument.Parse(line))
-							{
-								if (doc.RootElement.TryGetProperty("message", out var msgElem))
-								{
-									var contentFrag = msgElem.GetProperty("content").GetString();
-									if (!string.IsNullOrEmpty(contentFrag))
-										onMessageFragment(contentFrag);
-								}
-							}
-						}
-						catch (Exception ex)
-						{
-							System.Diagnostics.Debug.WriteLine($"[OllamaChatService] NDJSON parse error: {ex.Message}\n{line}");
-						}
-					}
-				}
+			   using (var stream = await response.Content.ReadAsStreamAsync())
+			   using (var reader = new System.IO.StreamReader(stream))
+			   {
+				   string line;
+				   int fragCount = 0;
+				   while ((line = await reader.ReadLineAsync()) != null)
+				   {
+					   if (token.IsCancellationRequested)
+					   {
+						   System.Diagnostics.Debug.WriteLine($"[OllamaChatService] Streaming cancelled after {fragCount} fragments at {DateTime.Now:HH:mm:ss.fff}");
+						   break;
+					   }
+					   if (string.IsNullOrWhiteSpace(line))
+						   continue;
+					   try
+					   {
+						   using (var doc = JsonDocument.Parse(line))
+						   {
+							   if (doc.RootElement.TryGetProperty("message", out var msgElem))
+							   {
+								   var contentFrag = msgElem.GetProperty("content").GetString();
+								   if (!string.IsNullOrEmpty(contentFrag))
+								   {
+									   fragCount++;
+									   System.Diagnostics.Debug.WriteLine($"[OllamaChatService] Fragment {fragCount} at {DateTime.Now:HH:mm:ss.fff}: '{contentFrag?.Substring(0, Math.Min(contentFrag.Length, 40))}'");
+									   onMessageFragment(contentFrag);
+								   }
+							   }
+						   }
+					   }
+					   catch (Exception ex)
+					   {
+						   System.Diagnostics.Debug.WriteLine($"[OllamaChatService] NDJSON parse error: {ex.Message}\n{line}");
+					   }
+				   }
+				   System.Diagnostics.Debug.WriteLine($"[OllamaChatService] Streaming completed after {fragCount} fragments at {DateTime.Now:HH:mm:ss.fff}");
+			   }
 			}
 		}
 		catch (OperationCanceledException)
