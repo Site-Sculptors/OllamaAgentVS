@@ -18,7 +18,7 @@ using System.Windows.Input;
 
 namespace OllamaAgent.VSIX.ViewModels
 {
-	public class ChatViewModel : ViewModelBase
+public partial class ChatViewModel : ViewModelBase
 	{
 	   private static readonly ObservableCollection<ChatMessageBase> _emptyMessages = new ObservableCollection<ChatMessageBase>();
 		private readonly IOllamaChatService _ollamaChatService;
