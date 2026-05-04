@@ -3,7 +3,8 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:converters="clr-namespace:OllamaAgent.VSIX.Converters"
-    xmlns:viewModels="clr-namespace:OllamaAgent.VSIX.ViewModels">
+    xmlns:viewModels="clr-namespace:OllamaAgent.VSIX.ViewModels"
+    MinHeight="600">
     <UserControl.Resources>
         <converters:ServerStatusToBrushConverter x:Key="ServerStatusToBrushConverter" />
         <Style TargetType="Button">
@@ -27,7 +28,7 @@
         </Style>
     </UserControl.Resources>
 
-    <StackPanel MinWidth="300" Margin="12">
+    <StackPanel  Margin="12">
         <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
             <Ellipse
                 Width="8"
@@ -42,8 +43,23 @@
                 Foreground="{Binding Status, Converter={StaticResource ServerStatusToBrushConverter}}"
                 IsEnabled="{Binding AgentEnabled}"
                 ToolTip="Click to start the Ollama server" />
+
+            <Button
+                Grid.Row="2"
+                Grid.Column="1"
+                Margin="10,0"
+                Command="{Binding TestConnectionCommand}"
+                Content="Test Connection"
+                IsEnabled="{Binding AgentEnabled}" />
+
+            <Button
+                Grid.Row="2"
+                Grid.Column="2"
+                Command="{Binding RefreshModelsCommand}"
+                Content="Refresh Models"
+                IsEnabled="{Binding AgentEnabled}" />
         </StackPanel>
-        <TextBlock Text="Ollama Endpoint" />
+        <TextBlock Margin="0,10,0,0" Text="Ollama Endpoint" />
         <TextBox IsEnabled="{Binding AgentEnabled}" Text="{Binding OllamaEndpoint, UpdateSourceTrigger=PropertyChanged}" />
 
         <!--  Models Directory Picker  -->
@@ -106,33 +122,20 @@
             Text="{Binding TestConnectionMessage}"
             TextWrapping="Wrap" />
 
-        <Grid Margin="0,10,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
 
-            <CheckBox
-                Grid.Column="0"
-                VerticalAlignment="Center"
-                Content="Enable Agent"
-                IsChecked="{Binding AgentEnabled}" />
-
-            <Button
-                Grid.Column="1"
-                Margin="10,0"
-                Command="{Binding TestConnectionCommand}"
-                Content="Test Connection"
-                IsEnabled="{Binding AgentEnabled}" />
-
-            <Button
-                Grid.Column="2"
-                Command="{Binding RefreshModelsCommand}"
-                Content="Refresh Models"
-                IsEnabled="{Binding AgentEnabled}" />
-
-        </Grid>
+        <CheckBox
+            VerticalAlignment="Center"
+            Content="Enable referencing your #solution (Requires restart)"
+            IsChecked="{Binding ReferenceSolutionEnabled}" />
+        <CheckBox
+            Margin="0,10"
+            VerticalAlignment="Center"
+            Content="Auto attach Active Document"
+            IsChecked="{Binding AutoAttachActiveDocument}" />
+        <CheckBox
+            VerticalAlignment="Center"
+            Content="Enable Agent"
+            IsChecked="{Binding AgentEnabled}" />
 
     </StackPanel>
 

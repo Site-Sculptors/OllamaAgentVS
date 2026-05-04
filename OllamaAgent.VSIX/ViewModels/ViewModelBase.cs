@@ -287,6 +287,32 @@ public class ViewModelBase : INotifyPropertyChanged
 		}
 	}
 
+	private bool _autoAttachActiveDocument;
+	public bool AutoAttachActiveDocument
+	{
+		get => _autoAttachActiveDocument;
+		set
+		{
+			if (_autoAttachActiveDocument != value)
+			{
+				_autoAttachActiveDocument = value;
+			}
+		}
+	}
+
+	private bool _referenceSolutionEnabled;
+	public bool ReferenceSolutionEnabled
+	{
+		get => _referenceSolutionEnabled;
+		set
+		{
+			if (_referenceSolutionEnabled != value)
+			{
+				_referenceSolutionEnabled = value;
+			}
+		}
+	}
+
 	private static readonly HttpClient _httpClient = new HttpClient();
 
 	private const string OllamaProcessName = "ollama";
