@@ -1,25 +1,13 @@
-using CommunityToolkit.Mvvm.Input;
 
+using System.Linq;
+using CommunityToolkit.Mvvm.Input;
+using OllamaAgent.VSIX.Models;
 using System.Threading.Tasks;
 
 namespace OllamaAgent.VSIX.ViewModels
 {
 	public partial class ChatViewModel
 	{
-		// Menu state
-		private bool _autoAttachActiveDocument = true;
-		public bool AutoAttachActiveDocument
-		{
-			get => _autoAttachActiveDocument;
-			set
-			{
-				if (_autoAttachActiveDocument != value)
-				{
-					_autoAttachActiveDocument = value;
-					OnPropertyChanged(nameof(AutoAttachActiveDocument));
-				}
-			}
-		}
 
 		/// <summary>
 		/// Raised when the View should display the attach/context menu.
@@ -115,7 +103,22 @@ namespace OllamaAgent.VSIX.ViewModels
 			_toggleAutoAttachCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
 			{
 				AutoAttachActiveDocument = !AutoAttachActiveDocument;
-				await Task.CompletedTask;
+
+				//Persist this bool
+
+
+				if (AutoAttachActiveDocument)
+				{
+					Attachments.Add(new AttachmentModel { Label = "Active Document" });
+				}
+				else
+				{
+					var activeDocAttachment = Attachments.FirstOrDefault(a => a.Label == "Active Document");
+					if (activeDocAttachment != null)
+					{
+						Attachments.Remove(activeDocAttachment);
+					}
+				}
 			});
 	}
 }

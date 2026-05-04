@@ -307,7 +307,7 @@
                                     BorderThickness="0"
                                     CornerRadius="6">
                                     <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                                        <TextBlock Foreground="{DynamicResource ColorTextPrimary}" Text="{Binding AttachedFileName}" />
+                                        <TextBlock Foreground="{DynamicResource ColorTextPrimary}" Text="{Binding Label}" />
                                         <TextBlock
                                             Margin="6,0"
                                             Foreground="{DynamicResource ColorTextPrimary}"

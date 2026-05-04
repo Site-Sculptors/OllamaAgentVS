@@ -33,6 +33,10 @@ public partial class ChatViewModel : ViewModelBase
 		public bool CustomInstructionsActive => _customInstructionsService?.IsActive == true;
 		public string CustomInstructionsPath => _customInstructionsService?.IsActive == true ? _customInstructionsService.Instructions : null;
 
+		private EnvDTE.Events _dteEvents;
+		private EnvDTE.DocumentEvents _documentEvents;
+		private EnvDTE.WindowEvents _windowEvents;
+
 		public ChatViewModel(IOllamaChatService ollamaChatService, IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package, IModelStore modelStore, IEditorContextService editorContextService, IErrorListService errorListService, IOutputWindowContextService outputWindowContextService)
 			: base(ollamaAgentService, ollamaModelService, package, modelStore)
 		{
@@ -48,6 +52,25 @@ public partial class ChatViewModel : ViewModelBase
 			ThreadHelper.JoinableTaskFactory.Run(async () => await LoadThreadsForCurrentSolutionAsync());
 
 			SetActiveDocumentAsAttachedFile();
+
+			// Subscribe to DTE events for active document tracking
+			ThreadHelper.ThrowIfNotOnUIThread();
+			var dte = (EnvDTE.DTE)ServiceProvider.GlobalProvider.GetService(typeof(EnvDTE.DTE));
+			if (dte != null)
+			{
+				_dteEvents = dte.Events;
+				_documentEvents = _dteEvents?.get_DocumentEvents(null);
+				_windowEvents = _dteEvents?.get_WindowEvents();
+				if (_documentEvents != null)
+				{
+					_documentEvents.DocumentOpened += DocumentOrWindowChanged;
+					_documentEvents.DocumentSaved += DocumentOrWindowChanged;
+				}
+				if (_windowEvents != null)
+				{
+					_windowEvents.WindowActivated += WindowActivated;
+				}
+			}
 		}
 
 		public void SetActiveDocumentAsAttachedFile()
@@ -70,8 +93,32 @@ public partial class ChatViewModel : ViewModelBase
 			}
 		}
 
+		// Handler for document or window change events
+		private void DocumentOrWindowChanged(EnvDTE.Document doc)
+		{
+			TryAutoAttachActiveDocument();
+		}
+
+		private void WindowActivated(EnvDTE.Window gotFocus, EnvDTE.Window lostFocus)
+		{
+			TryAutoAttachActiveDocument();
+		}
+
+		private void TryAutoAttachActiveDocument()
+		{
+			ThreadHelper.ThrowIfNotOnUIThread();
+			if (AutoAttachActiveDocument)
+			{
+				// Remove previous "Active Document" attachment if present
+				var toRemove = Attachments.Where(a => a.Label == "Active Document").ToList();
+				foreach (var att in toRemove)
+					Attachments.Remove(att);
+				SetActiveDocumentAsAttachedFile();
+			}
+		}
+
 		// Attachments chip bar state
-		public ObservableCollection<Models.AttachmentModel> Attachments { get; } = new ObservableCollection<Models.AttachmentModel>();
+		public ObservableCollection<AttachmentModel> Attachments { get; } = new ObservableCollection<Models.AttachmentModel>();
 
 		private IRelayCommand<Models.AttachmentModel> _removeAttachmentCommand;
 		public IRelayCommand<Models.AttachmentModel> RemoveAttachmentCommand =>

@@ -94,5 +94,17 @@ namespace OllamaAgent.VSIX.Properties {
 				this["ChatsDirectory"] = value;
 			}
 		}
+
+		[global::System.Configuration.UserScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute("True")]
+		public bool AutoAttachActiveDocument {
+			get {
+				return ((bool)(this["AutoAttachActiveDocument"]));
+			}
+			set {
+				this["AutoAttachActiveDocument"] = value;
+			}
+		}
 	}
 }

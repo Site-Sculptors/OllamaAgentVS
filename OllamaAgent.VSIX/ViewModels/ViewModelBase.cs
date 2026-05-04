@@ -287,18 +287,23 @@ public class ViewModelBase : INotifyPropertyChanged
 		}
 	}
 
-	private bool _autoAttachActiveDocument;
-	public bool AutoAttachActiveDocument
-	{
-		get => _autoAttachActiveDocument;
-		set
-		{
-			if (_autoAttachActiveDocument != value)
-			{
-				_autoAttachActiveDocument = value;
-			}
-		}
-	}
+   private bool _autoAttachActiveDocument;
+   public bool AutoAttachActiveDocument
+   {
+	   get => _autoAttachActiveDocument;
+	   set
+	   {
+		   if (_autoAttachActiveDocument != value)
+		   {
+			   _autoAttachActiveDocument = value;
+			   OnPropertyChanged();
+			   // Persist immediately
+			   OllamaAgent.VSIX.Properties.Settings.Default.AutoAttachActiveDocument = value;
+			   OllamaAgent.VSIX.Properties.Settings.Default.Save();
+			   SaveSettings();
+		   }
+	   }
+   }
 
 	private bool _referenceSolutionEnabled;
 	public bool ReferenceSolutionEnabled
