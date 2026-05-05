@@ -41,7 +41,7 @@
                 Command="{Binding StartServerCommand}"
                 Content="{Binding Status}"
                 Foreground="{Binding Status, Converter={StaticResource ServerStatusToBrushConverter}}"
-                IsEnabled="{Binding AgentEnabled}"
+                IsEnabled="{Binding ExtensionEnabled}"
                 ToolTip="Click to start the Ollama server" />
 
             <Button
@@ -50,17 +50,17 @@
                 Margin="10,0"
                 Command="{Binding TestConnectionCommand}"
                 Content="Test Connection"
-                IsEnabled="{Binding AgentEnabled}" />
+                IsEnabled="{Binding ExtensionEnabled}" />
 
             <Button
                 Grid.Row="2"
                 Grid.Column="2"
                 Command="{Binding RefreshModelsCommand}"
                 Content="Refresh Models"
-                IsEnabled="{Binding AgentEnabled}" />
+                IsEnabled="{Binding ExtensionEnabled}" />
         </StackPanel>
         <TextBlock Margin="0,10,0,0" Text="Ollama Endpoint" />
-        <TextBox IsEnabled="{Binding AgentEnabled}" Text="{Binding OllamaEndpoint, UpdateSourceTrigger=PropertyChanged}" />
+        <TextBox IsEnabled="{Binding ExtensionEnabled}" Text="{Binding OllamaEndpoint, UpdateSourceTrigger=PropertyChanged}" />
 
         <!--  Models Directory Picker  -->
         <TextBlock
@@ -79,7 +79,7 @@
                 VerticalAlignment="Center"
                 Command="{Binding SelectModelsDirectoryCommand}"
                 Content="Browse..."
-                IsEnabled="{Binding AgentEnabled}" />
+                IsEnabled="{Binding ExtensionEnabled}" />
         </StackPanel>
         <TextBlock
             Margin="0,8,0,0"
@@ -97,14 +97,14 @@
                 VerticalAlignment="Center"
                 Command="{Binding SelectChatDirectoryCommand}"
                 Content="Browse..."
-                IsEnabled="{Binding AgentEnabled}" />
+                IsEnabled="{Binding ExtensionEnabled}" />
         </StackPanel>
 
         <StackPanel VerticalAlignment="Center" Orientation="Vertical">
             <TextBlock Margin="0,10,0,0" Text="Chat Model" />
             <ComboBox
                 DisplayMemberPath="Name"
-                IsEnabled="{Binding AgentEnabled}"
+                IsEnabled="{Binding ExtensionEnabled}"
                 ItemsSource="{Binding Models}"
                 SelectedItem="{Binding SelectedChatModel, Mode=TwoWay}" />
         </StackPanel>
@@ -112,7 +112,7 @@
             <TextBlock Margin="0,10,0,0" Text="CompletionModel" />
             <ComboBox
                 DisplayMemberPath="Name"
-                IsEnabled="{Binding AgentEnabled}"
+                IsEnabled="{Binding ExtensionEnabled}"
                 ItemsSource="{Binding Models}"
                 SelectedItem="{Binding SelectedCompletionModel, Mode=TwoWay}" />
         </StackPanel>
@@ -134,8 +134,8 @@
             IsChecked="{Binding AutoAttachActiveDocument}" />
         <CheckBox
             VerticalAlignment="Center"
-            Content="Enable Agent"
-            IsChecked="{Binding AgentEnabled}" />
+            Content="Extension Enabled"
+            IsChecked="{Binding ExtensionEnabled}" />
 
     </StackPanel>
 

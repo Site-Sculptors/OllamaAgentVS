@@ -12,5 +12,6 @@ namespace OllamaAgent.VSIX.Enums
 		Offline = 1,
 		Online = 2,
 		Starting = 3,
+		Disabled = 4,
 	}
 }

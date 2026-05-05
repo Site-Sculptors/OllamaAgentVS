@@ -38,6 +38,9 @@ namespace OllamaAgent.VSIX
 		public const string PackageGuidString =
 			"b94239c4-4aa9-4a3d-b23c-d720cfb207b1";
 
+		// Shared singleton instance for options and other windows
+		public ViewModels.OllamaOptionsViewModel SharedOptionsViewModel { get; private set; }
+
 	  protected override async Task InitializeAsync(
 	   CancellationToken cancellationToken,
 	   IProgress<ServiceProgressData> progress)
@@ -48,6 +51,12 @@ namespace OllamaAgent.VSIX
 	   this.AddService(typeof(Services.IModelStore), (container, cancellationToken, serviceType) =>
 	   {
 		   return Task.FromResult<object>(new Services.ModelStore());
+	   }, promote: true);
+
+	   // Register shared ViewModel state singleton
+	   this.AddService(typeof(Services.IViewModelStateStore), (container, cancellationToken, serviceType) =>
+	   {
+		   return Task.FromResult<object>(new Services.ViewModelStateStore());
 	   }, promote: true);
 
 		  // Register IOllamaApiService singleton (must be before IOllamaChatService)
@@ -102,18 +111,31 @@ namespace OllamaAgent.VSIX
 		   return Task.FromResult<object>(new Services.OutputWindowContextService());
 	   }, promote: true);
 
-	   // Register ChatViewModel singleton
-	   this.AddService(typeof(ViewModels.ChatViewModel), (container, cancellationToken, serviceType) =>
-	   {
-		var chatService = (Services.IOllamaChatService)((IServiceProvider)container).GetService(typeof(Services.IOllamaChatService));
-		var agentService = (Services.IOllamaAgentService)((IServiceProvider)container).GetService(typeof(Services.IOllamaAgentService));
-		var modelService = (Services.IOllamaModelService)((IServiceProvider)container).GetService(typeof(Services.IOllamaModelService));
-		var modelStore = (Services.IModelStore)((IServiceProvider)container).GetService(typeof(Services.IModelStore));
-		var editorContext = (Services.IEditorContextService)((IServiceProvider)container).GetService(typeof(Services.IEditorContextService));
-		var errorListService = (Services.IErrorListService)((IServiceProvider)container).GetService(typeof(Services.IErrorListService));
-		var outputWindowContextService = (Services.IOutputWindowContextService)((IServiceProvider)container).GetService(typeof(Services.IOutputWindowContextService));
-		return Task.FromResult<object>(new ViewModels.ChatViewModel(chatService, agentService, modelService, this, modelStore, editorContext, errorListService, outputWindowContextService));
-	   }, promote: true);
+	  // Register OllamaOptionsViewModel singleton
+   this.AddService(typeof(ViewModels.OllamaOptionsViewModel), (container, cancellationToken, serviceType) =>
+   {
+	   var agentService = (Services.IOllamaAgentService)((IServiceProvider)container).GetService(typeof(Services.IOllamaAgentService));
+	   var modelService = (Services.IOllamaModelService)((IServiceProvider)container).GetService(typeof(Services.IOllamaModelService));
+	   var modelStore = (Services.IModelStore)((IServiceProvider)container).GetService(typeof(Services.IModelStore));
+	   var viewModelStateStore = (Services.IViewModelStateStore)((IServiceProvider)container).GetService(typeof(Services.IViewModelStateStore));
+	   var vm = new ViewModels.OllamaOptionsViewModel(agentService, modelService, this, modelStore, viewModelStateStore);
+	   this.SharedOptionsViewModel = vm;
+	   return Task.FromResult<object>(vm);
+   }, promote: true);
+
+   // Register ChatViewModel singleton
+   this.AddService(typeof(ViewModels.ChatViewModel), (container, cancellationToken, serviceType) =>
+   {
+	   var chatService = (Services.IOllamaChatService)((IServiceProvider)container).GetService(typeof(Services.IOllamaChatService));
+	   var agentService = (Services.IOllamaAgentService)((IServiceProvider)container).GetService(typeof(Services.IOllamaAgentService));
+	   var modelService = (Services.IOllamaModelService)((IServiceProvider)container).GetService(typeof(Services.IOllamaModelService));
+	   var modelStore = (Services.IModelStore)((IServiceProvider)container).GetService(typeof(Services.IModelStore));
+	   var viewModelStateStore = (Services.IViewModelStateStore)((IServiceProvider)container).GetService(typeof(Services.IViewModelStateStore));
+	   var editorContext = (Services.IEditorContextService)((IServiceProvider)container).GetService(typeof(Services.IEditorContextService));
+	   var errorListService = (Services.IErrorListService)((IServiceProvider)container).GetService(typeof(Services.IErrorListService));
+	   var outputWindowContextService = (Services.IOutputWindowContextService)((IServiceProvider)container).GetService(typeof(Services.IOutputWindowContextService));
+	   return Task.FromResult<object>(new ViewModels.ChatViewModel(chatService, agentService, modelService, this, modelStore, viewModelStateStore, editorContext, errorListService, outputWindowContextService));
+   }, promote: true);
    // Register EditorContextService singleton
    this.AddService(typeof(Services.IEditorContextService), (container, ct, serviceType) =>
    {

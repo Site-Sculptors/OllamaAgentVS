@@ -50,12 +50,12 @@ namespace OllamaAgent.VSIX.Properties {
 		[global::System.Configuration.UserScopedSettingAttribute()]
 		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
 		[global::System.Configuration.DefaultSettingValueAttribute("True")]
-		public bool EnableAgent {
+		public bool ExtensionEnabled {
 			get {
-				return ((bool)(this["EnableAgent"]));
+				return ((bool)(this["ExtensionEnabled"]));
 			}
 			set {
-				this["EnableAgent"] = value;
+				this["ExtensionEnabled"] = value;
 			}
 		}
 

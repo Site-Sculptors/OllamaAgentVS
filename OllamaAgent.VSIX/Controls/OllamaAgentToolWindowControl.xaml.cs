@@ -162,11 +162,16 @@ namespace OllamaAgent.VSIX.Controls
 					var vm2 = _viewModel;
 					if (vm2 != null)
 					{
-						vm2.PropertyChanged += (sender, args) =>
+						vm2.PropertyChanged += async (sender, args) =>
 						{
 							if (args.PropertyName == nameof(vm2.Status) || args.PropertyName == nameof(vm2.Models))
 							{
 								TryEnableAutoScroll();
+							}
+							if (args.PropertyName == nameof(vm2.ExtensionEnabled))
+							{
+								// Refresh status when extension enabled/disabled
+								await vm2.SafeLoadAsync();
 							}
 						};
 						if (vm2.Models != null)

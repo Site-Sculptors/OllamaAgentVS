@@ -21,6 +21,7 @@ public static class DependencyInjectionRegistration
 	public static void ConfigureStores(IServiceCollection services)
 	{
 		services.AddSingleton<IModelStore, ModelStore>();
+		services.AddSingleton<IViewModelStateStore, ViewModelStateStore>();
 	}
 
 	public static void ConfigureServices(IServiceCollection services)

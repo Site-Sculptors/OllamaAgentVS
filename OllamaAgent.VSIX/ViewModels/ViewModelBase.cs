@@ -34,24 +34,29 @@ public class ViewModelBase : INotifyPropertyChanged
 	public IOllamaModelService OllamaModelService { get; }
 	public OllamaAgentVSIXPackage Package { get; }
 	public IModelStore ModelStore { get; }
+	public IViewModelStateStore ViewModelStateStore { get; }
 	private readonly CancellationTokenSource _monitorCts = new CancellationTokenSource();
 
 	// FIX #2: Guard against concurrent SafeLoadAsync calls racing on the shared ModelStore
 	private int _isLoading = 0;
 
-	public ViewModelBase(IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package, IModelStore modelStore)
+	public ViewModelBase(IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package, IModelStore modelStore, IViewModelStateStore viewModelStateStore)
 	{
 		if (modelStore == null)
 			throw new ArgumentNullException(nameof(modelStore), "ModelStore cannot be null. Check your DI or constructor calls.");
+		if (viewModelStateStore == null)
+			throw new ArgumentNullException(nameof(viewModelStateStore));
 		OllamaAgentService = ollamaAgentService;
 		OllamaModelService = ollamaModelService;
 		Package = package;
 		ModelStore = modelStore;
+		ViewModelStateStore = viewModelStateStore;
 
 		// FIX #1: Subscribe to ModelStore.PropertyChanged so that when any ViewModel
 		// mutates SelectedChatModel or Models on the shared store, all other ViewModels
 		// bound to those properties get notified and their UI updates too.
 		ModelStore.PropertyChanged += ModelStore_PropertyChanged;
+		ViewModelStateStore.PropertyChanged += ViewModelStateStore_PropertyChanged;
 
 		LoadSettings();
 		_ = StartServerMonitorAsync(_monitorCts.Token);
@@ -78,6 +83,38 @@ public class ViewModelBase : INotifyPropertyChanged
 		if (e.PropertyName == nameof(IModelStore.Models))
 			OnPropertyChanged(nameof(Models));
 	}
+
+	private void ViewModelStateStore_PropertyChanged(object sender, PropertyChangedEventArgs e)
+	{
+		if (string.IsNullOrWhiteSpace(e.PropertyName))
+		{
+			OnPropertyChanged(nameof(Status));
+			OnPropertyChanged(nameof(TestConnectionMessage));
+			OnPropertyChanged(nameof(OllamaEndpoint));
+			OnPropertyChanged(nameof(ModelsDirectory));
+			OnPropertyChanged(nameof(ChatsDirectory));
+			OnPropertyChanged(nameof(ExtensionEnabled));
+			OnPropertyChanged(nameof(AutoAttachActiveDocument));
+			OnPropertyChanged(nameof(ReferenceSolutionEnabled));
+			OnPropertyChanged(nameof(AgentEnabled));
+			return;
+		}
+
+		OnPropertyChanged(e.PropertyName);
+
+		if (e.PropertyName == nameof(IViewModelStateStore.Status) ||
+			e.PropertyName == nameof(IViewModelStateStore.ExtensionEnabled))
+		{
+			OnPropertyChanged(nameof(AgentEnabled));
+		}
+
+		if (e.PropertyName == nameof(IViewModelStateStore.Status))
+		{
+			StatusChanged?.Invoke(this, Status);
+		}
+	}
+
+	public bool AgentEnabled => ExtensionEnabled;
 
 	public ObservableCollection<LLM> Models
 	{
@@ -153,7 +190,7 @@ public class ViewModelBase : INotifyPropertyChanged
 	// Call this ONLY after models are loaded/refreshed
 	public void LoadSettings()
 	{
-		_modelsDirectory = Settings.Default.ModelsDirectory;
+		ViewModelStateStore.ModelsDirectory = Settings.Default.ModelsDirectory;
 		OnPropertyChanged(nameof(ModelsDirectory));
 
 		RestoreSelectedModels();
@@ -161,32 +198,35 @@ public class ViewModelBase : INotifyPropertyChanged
 		var persistedEndpoint = OllamaAgent.VSIX.Properties.Settings.Default.Endpoint;
 		if (!string.IsNullOrWhiteSpace(persistedEndpoint))
 		{
-			_ollamaEndpoint = persistedEndpoint;
+			ViewModelStateStore.OllamaEndpoint = persistedEndpoint;
 			OnPropertyChanged(nameof(OllamaEndpoint));
 		}
 		else
 		{
-			_ollamaEndpoint = "http://localhost:11434";
+			ViewModelStateStore.OllamaEndpoint = "http://localhost:11434";
 			OnPropertyChanged(nameof(OllamaEndpoint));
 		}
 
-		_agentEnabled = OllamaAgent.VSIX.Properties.Settings.Default.EnableAgent;
-		OnPropertyChanged(nameof(AgentEnabled));
+		ViewModelStateStore.ExtensionEnabled = OllamaAgent.VSIX.Properties.Settings.Default.ExtensionEnabled;
+		OnPropertyChanged(nameof(ExtensionEnabled));
 
 		var persistedModelsDirectory = OllamaAgent.VSIX.Properties.Settings.Default.ModelsDirectory;
 
 		if (!string.IsNullOrWhiteSpace(persistedModelsDirectory))
 		{
-			_modelsDirectory = persistedModelsDirectory;
+			ViewModelStateStore.ModelsDirectory = persistedModelsDirectory;
 			OnPropertyChanged(nameof(ModelsDirectory));
 		}
 
 		var persistedChatsDirectory = OllamaAgent.VSIX.Properties.Settings.Default.ChatsDirectory;
 		if (!string.IsNullOrWhiteSpace(persistedChatsDirectory))
 		{
-			_chatsDirectory = persistedChatsDirectory;
+			ViewModelStateStore.ChatsDirectory = persistedChatsDirectory;
 			OnPropertyChanged(nameof(ChatsDirectory));
 		}
+
+		ViewModelStateStore.AutoAttachActiveDocument = OllamaAgent.VSIX.Properties.Settings.Default.AutoAttachActiveDocument;
+		OnPropertyChanged(nameof(AutoAttachActiveDocument));
 	}
 
 	public void SaveSettings()
@@ -195,72 +235,85 @@ public class ViewModelBase : INotifyPropertyChanged
 		Settings.Default.SelectedChatModel = SelectedChatModel?.Name;
 		Settings.Default.SelectedCompletionModel = SelectedCompletionModel?.Name;
 		Settings.Default.Endpoint = OllamaEndpoint;
-		Settings.Default.EnableAgent = AgentEnabled;
+		Settings.Default.ExtensionEnabled = ExtensionEnabled;
 		Settings.Default.Save();
 	}
 
-	private bool _agentEnabled = true;
-	public bool AgentEnabled
+	public bool ExtensionEnabled
 	{
-		get => _agentEnabled;
+		get => ViewModelStateStore.ExtensionEnabled;
 		set
 		{
-			if (_agentEnabled != value)
+			if (ViewModelStateStore.ExtensionEnabled != value)
 			{
-				_agentEnabled = value;
+				ViewModelStateStore.ExtensionEnabled = value;
 				OnPropertyChanged();
+				OnPropertyChanged(nameof(AgentEnabled));
 				// Persist immediately
-				OllamaAgent.VSIX.Properties.Settings.Default.EnableAgent = value;
+				OllamaAgent.VSIX.Properties.Settings.Default.ExtensionEnabled = value;
 				OllamaAgent.VSIX.Properties.Settings.Default.Save();
 			}
 		}
 	}
 
-	private ServerStatus _status;
+	protected async Task EnsureServerOnlineAsync()
+	{
+		await CheckOllamaOnlineAsync();
+		if (Status != ServerStatus.Online && Status != ServerStatus.Starting)
+		{
+			// Try to start the server monitor (which will attempt to bring it online)
+			_ = StartServerMonitorAsync(_monitorCts.Token);
+		}
+
+		OnPropertyChanged(nameof(Status));
+	}
+
 	public ServerStatus Status
 	{
-		get => _status;
+		get => ViewModelStateStore.Status;
 		protected set
 		{
-			if (_status != value)
+			if (ViewModelStateStore.Status != value)
 			{
-				_status = value;
-				OnPropertyChanged(nameof(Status));
-				StatusChanged?.Invoke(this, _status);
+				ViewModelStateStore.Status = value;
 			}
 		}
 	}
 
-	private string _testConnectionMessage;
 	public string TestConnectionMessage
 	{
-		get => _testConnectionMessage;
-		set { _testConnectionMessage = value; OnPropertyChanged(); }
-	}
-
-	private string _ollamaEndpoint = "http://localhost:11434";
-	public string OllamaEndpoint
-	{
-		get => _ollamaEndpoint;
+		get => ViewModelStateStore.TestConnectionMessage;
 		set
 		{
-			if (_ollamaEndpoint != value)
+			if (ViewModelStateStore.TestConnectionMessage != value)
 			{
-				_ollamaEndpoint = value;
+				ViewModelStateStore.TestConnectionMessage = value;
+				OnPropertyChanged();
+			}
+		}
+	}
+
+	public string OllamaEndpoint
+	{
+		get => ViewModelStateStore.OllamaEndpoint;
+		set
+		{
+			if (ViewModelStateStore.OllamaEndpoint != value)
+			{
+				ViewModelStateStore.OllamaEndpoint = value;
 				OnPropertyChanged(nameof(OllamaEndpoint));
 			}
 		}
 	}
 
-	private string _modelsDirectory;
 	public string ModelsDirectory
 	{
-		get => _modelsDirectory;
+		get => ViewModelStateStore.ModelsDirectory;
 		set
 		{
-			if (_modelsDirectory != value)
+			if (ViewModelStateStore.ModelsDirectory != value)
 			{
-				_modelsDirectory = value;
+				ViewModelStateStore.ModelsDirectory = value;
 				OnPropertyChanged();
 				// Save to user settings
 				Settings.Default.ModelsDirectory = value;
@@ -271,15 +324,14 @@ public class ViewModelBase : INotifyPropertyChanged
 		}
 	}
 
-	private string _chatsDirectory;
 	public string ChatsDirectory
 	{
-		get => _chatsDirectory;
+		get => ViewModelStateStore.ChatsDirectory;
 		set
 		{
-			if (_chatsDirectory != value)
+			if (ViewModelStateStore.ChatsDirectory != value)
 			{
-				_chatsDirectory = value;
+				ViewModelStateStore.ChatsDirectory = value;
 				OnPropertyChanged();
 				Settings.Default.ChatsDirectory = value;
 				Settings.Default.Save();
@@ -287,33 +339,32 @@ public class ViewModelBase : INotifyPropertyChanged
 		}
 	}
 
-   private bool _autoAttachActiveDocument;
-   public bool AutoAttachActiveDocument
-   {
-	   get => _autoAttachActiveDocument;
-	   set
-	   {
-		   if (_autoAttachActiveDocument != value)
-		   {
-			   _autoAttachActiveDocument = value;
-			   OnPropertyChanged();
-			   // Persist immediately
-			   OllamaAgent.VSIX.Properties.Settings.Default.AutoAttachActiveDocument = value;
-			   OllamaAgent.VSIX.Properties.Settings.Default.Save();
-			   SaveSettings();
-		   }
-	   }
-   }
-
-	private bool _referenceSolutionEnabled;
-	public bool ReferenceSolutionEnabled
+	public bool AutoAttachActiveDocument
 	{
-		get => _referenceSolutionEnabled;
+		get => ViewModelStateStore.AutoAttachActiveDocument;
 		set
 		{
-			if (_referenceSolutionEnabled != value)
+			if (ViewModelStateStore.AutoAttachActiveDocument != value)
 			{
-				_referenceSolutionEnabled = value;
+				ViewModelStateStore.AutoAttachActiveDocument = value;
+				OnPropertyChanged();
+				// Persist immediately
+				OllamaAgent.VSIX.Properties.Settings.Default.AutoAttachActiveDocument = value;
+				OllamaAgent.VSIX.Properties.Settings.Default.Save();
+				SaveSettings();
+			}
+		}
+	}
+
+	public bool ReferenceSolutionEnabled
+	{
+		get => ViewModelStateStore.ReferenceSolutionEnabled;
+		set
+		{
+			if (ViewModelStateStore.ReferenceSolutionEnabled != value)
+			{
+				ViewModelStateStore.ReferenceSolutionEnabled = value;
+				OnPropertyChanged();
 			}
 		}
 	}
@@ -327,10 +378,17 @@ public class ViewModelBase : INotifyPropertyChanged
 	{
 		try
 		{
+			if (!ExtensionEnabled)
+			{
+				Status = ServerStatus.Disabled;
+				return;
+			}
+
 			var url = OllamaEndpoint.TrimEnd('/') + "/api/tags";
 			using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-			cts.CancelAfter(TimeSpan.FromSeconds(2));
+			cts.CancelAfter(TimeSpan.FromSeconds(10)); // Increased timeout to 10s
 			using var response = await _httpClient.GetAsync(url, cts.Token);
+
 			if (response.IsSuccessStatusCode)
 			{
 				Status = ServerStatus.Online;
@@ -376,13 +434,71 @@ public class ViewModelBase : INotifyPropertyChanged
 	public IAsyncRelayCommand StartServerCommand =>
 		_startServerCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
 		{
-			if (!AgentEnabled)
+			if (!ExtensionEnabled)
 			{
-				Status = ServerStatus.Offline;
+				Status = ServerStatus.Disabled;
+				var result = System.Windows.Forms.MessageBox.Show(
+					"The extension is currently disabled. Would you like to enable it now?",
+					"Extension Disabled",
+					System.Windows.Forms.MessageBoxButtons.YesNo,
+					System.Windows.Forms.MessageBoxIcon.Question);
+				if (result == System.Windows.Forms.DialogResult.Yes)
+				{
+					ExtensionEnabled = true;
+					await Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+					VsShellUtilities.ShowToolsOptionsPage<OllamaAgentOptionsPage>();
+				}
 				return;
 			}
 			try
 			{
+				if (Status == ServerStatus.Online)
+				{
+					// Double-check server is really online
+					await CheckOllamaOnlineAsync();
+					if (Status == ServerStatus.Online)
+					{
+						// Show custom dialog: Stop, Restart, Cancel
+						await Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+						var dialog = new OllamaAgent.VSIX.Views.ServerActionDialog();
+						var owner = System.Windows.Application.Current?.Windows.OfType<System.Windows.Window>().FirstOrDefault(w => w.IsActive);
+						if (owner != null)
+							dialog.Owner = owner;
+						var dialogResult = dialog.ShowDialog();
+						var action = dialog.Result;
+						if (action == OllamaAgent.VSIX.Views.ServerActionDialog.ServerActionResult.Stop)
+						{
+							foreach (var proc in System.Diagnostics.Process.GetProcessesByName(OllamaProcessName))
+							{
+								try { proc.Kill(); } catch { }
+							}
+							Status = ServerStatus.Offline;
+							TestConnectionMessage = "Ollama server stopped.";
+							return;
+						}
+						else if (action == OllamaAgent.VSIX.Views.ServerActionDialog.ServerActionResult.Restart)
+						{
+							foreach (var proc in System.Diagnostics.Process.GetProcessesByName(OllamaProcessName))
+							{
+								try { proc.Kill(); } catch { }
+							}
+							Status = ServerStatus.Offline;
+							TestConnectionMessage = "Restarting Ollama server...";
+							await Task.Delay(1000);
+							// Continue to start server below
+						}
+						else // Cancel
+						{
+							TestConnectionMessage = "Ollama server is already online.";
+							return;
+						}
+					}
+					else
+					{
+						// If server is not really online, continue to start
+					}
+				}
+
 				Status = ServerStatus.Starting;
 				var processStartInfo = new System.Diagnostics.ProcessStartInfo
 				{
@@ -401,8 +517,8 @@ public class ViewModelBase : INotifyPropertyChanged
 
 				System.Diagnostics.Process.Start(processStartInfo);
 
-				// Aggressive polling: every 2s for up to 30s or until online
-				const int maxTries = 15;
+				// Aggressive polling: every 2s for up to 60s or until online
+				const int maxTries = 30; // 30 tries at 2s = 60s
 				bool online = false;
 				for (int i = 0; i < maxTries; i++)
 				{
@@ -412,6 +528,11 @@ public class ViewModelBase : INotifyPropertyChanged
 					{
 						online = true;
 						break;
+					}
+					// After 15 tries (30s), update message to indicate still starting
+					if (i == 15)
+					{
+						TestConnectionMessage = "Ollama server is still starting...";
 					}
 				}
 				if (!online)
@@ -427,14 +548,13 @@ public class ViewModelBase : INotifyPropertyChanged
 				System.Diagnostics.Debug.WriteLine($"Failed to start Ollama server: {ex.Message}");
 				Status = ServerStatus.Offline;
 			}
-		},
-		(parameter) => AgentEnabled);
+		});
 
 	private IAsyncRelayCommand _testConnectionCommand;
 	public IAsyncRelayCommand TestConnectionCommand =>
 		_testConnectionCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
 		{
-			if (!AgentEnabled)
+			if (!ExtensionEnabled)
 			{
 				TestConnectionMessage = "Agent is disabled.";
 				Status = ServerStatus.Offline;
@@ -474,19 +594,19 @@ public class ViewModelBase : INotifyPropertyChanged
 				TestConnectionMessage = $"Connection failed: {ex.Message}";
 			}
 		},
-		(parameter) => AgentEnabled);
+		(parameter) => ExtensionEnabled);
 
 	private IAsyncRelayCommand _refreshModelsCommand;
 	public IAsyncRelayCommand RefreshModelsCommand =>
 		_refreshModelsCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
 		{
-			if (!AgentEnabled)
+			if (!ExtensionEnabled)
 			{
 				return;
 			}
 			await SafeLoadAsync();
 		},
-		(parameter) => AgentEnabled);
+		(parameter) => ExtensionEnabled);
 
 	// FIX #2: Interlocked flag prevents two ViewModels both responding to StatusChanged
 	// at the same time and racing to Clear() + repopulate the shared Models collection.
@@ -497,7 +617,7 @@ public class ViewModelBase : INotifyPropertyChanged
 
 		try
 		{
-			if (!AgentEnabled)
+			if (!ExtensionEnabled)
 			{
 				await Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 				Models.Clear();
@@ -642,6 +762,28 @@ public class ViewModelBase : INotifyPropertyChanged
 			}
 		});
 
+
+	private IAsyncRelayCommand _extensionEnabledToggledCommand;
+	public IAsyncRelayCommand ExtensionEnabledToggledCommand =>
+		_extensionEnabledToggledCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
+		{
+			if (ExtensionEnabled)
+			{
+				if (Status == ServerStatus.Disabled)
+				{
+					Status = ServerStatus.Unknown;
+				}
+
+				await EnsureServerOnlineAsync();
+			}
+			else
+			{
+				Status = ServerStatus.Disabled;
+			}
+
+				OnPropertyChanged(nameof(Status));
+		});
+
 	public event PropertyChangedEventHandler PropertyChanged;
 	protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string name = null)
 		=> PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
@@ -653,6 +795,7 @@ public class ViewModelBase : INotifyPropertyChanged
 			// FIX #1: Unsubscribe to avoid memory leaks / phantom notifications
 			// after this ViewModel is disposed.
 			ModelStore.PropertyChanged -= ModelStore_PropertyChanged;
+			ViewModelStateStore.PropertyChanged -= ViewModelStateStore_PropertyChanged;
 			_monitorCts.Cancel();
 			_monitorCts.Dispose();
 		}

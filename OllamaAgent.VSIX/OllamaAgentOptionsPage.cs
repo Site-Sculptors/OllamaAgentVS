@@ -1,19 +1,20 @@
-﻿using System;
-using System.ComponentModel;
-using System.Windows;
-
-using Microsoft.VisualStudio.Shell;
+﻿using Microsoft.VisualStudio.Shell;
 
 using OllamaAgent.VSIX.Controls;
+using OllamaAgent.VSIX.Enums;
 using OllamaAgent.VSIX.Services;
 using OllamaAgent.VSIX.ViewModels;
+
+using System;
+using System.ComponentModel;
+using System.Windows;
 
 namespace OllamaAgent.VSIX
 {
 	public class OllamaAgentOptionsPage : UIElementDialogPage
 	{
 		private OllamaOptionsControl _control;
-		private OllamaOptionsViewModel _viewModel;
+		private ViewModelBase _viewModel;
 
 		protected override UIElement Child
 		{
@@ -56,7 +57,8 @@ namespace OllamaAgent.VSIX
 					"Ensure OllamaAgentVSIXPackage.InitializeAsync has completed before " +
 					"opening the options page.");
 
-			_viewModel = new OllamaOptionsViewModel(agentService, modelService, vsixPackage, modelStore);
+			_viewModel = vsixPackage.SharedOptionsViewModel ??
+				(ViewModelBase)((IServiceProvider)vsixPackage).GetService(typeof(OllamaAgent.VSIX.ViewModels.OllamaOptionsViewModel));
 		}
 
 		/// <summary>
@@ -113,5 +115,27 @@ namespace OllamaAgent.VSIX
 				_ = _viewModel.SafeLoadAsync();
 			}
 		}
+
+		protected override void OnApply(PageApplyEventArgs e)
+		{
+			base.OnApply(e);
+
+
+			// Perform side effects (start/stop/check server) if ExtensionEnabled changed
+			if (_viewModel is ViewModelBase)
+			{
+				// Save settings
+				_viewModel.SaveSettings();
+
+				_ = _viewModel.ExtensionEnabledToggledCommand.ExecuteAsync(null);
+			}
+		}
+
+		protected override void OnClosed(EventArgs e)
+		{
+			base.OnClosed(e);
+			// Optionally: revert changes or clean up
+		}
+
 	}
 }

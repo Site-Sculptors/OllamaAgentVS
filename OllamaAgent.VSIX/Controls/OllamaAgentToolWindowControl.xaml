@@ -402,7 +402,7 @@
                     Margin="5"
                     HorizontalAlignment="Left"
                     DisplayMemberPath="Name"
-                    IsEnabled="{Binding AgentEnabled}"
+                    IsEnabled="{Binding ExtensionEnabled}"
                     ItemsSource="{Binding Models}"
                     SelectedItem="{Binding SelectedChatModel, Mode=TwoWay}" />
 
