@@ -18,8 +18,8 @@ namespace OllamaAgent.VSIX.ViewModels
 {
 	public class OllamaOptionsViewModel : ViewModelBase
 	{
-		public OllamaOptionsViewModel(IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package, IModelStore modelStore, IViewModelStateStore viewModelStateStore)
-			: base(ollamaAgentService, ollamaModelService, package, modelStore, viewModelStateStore)
+		public OllamaOptionsViewModel(IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package, IModelStore modelStore, IViewModelStateStore viewModelStateStore, IAgentStore agentStore)
+			: base(ollamaAgentService, ollamaModelService, package, modelStore, viewModelStateStore, agentStore)
 		{
 		}
 

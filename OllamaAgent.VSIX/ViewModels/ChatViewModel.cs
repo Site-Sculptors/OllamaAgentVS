@@ -37,8 +37,8 @@ public partial class ChatViewModel : ViewModelBase
 		private EnvDTE.DocumentEvents _documentEvents;
 		private EnvDTE.WindowEvents _windowEvents;
 
-		public ChatViewModel(IOllamaChatService ollamaChatService, IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package, IModelStore modelStore, IViewModelStateStore viewModelStateStore, IEditorContextService editorContextService, IErrorListService errorListService, IOutputWindowContextService outputWindowContextService)
-			: base(ollamaAgentService, ollamaModelService, package, modelStore, viewModelStateStore)
+		public ChatViewModel(IOllamaChatService ollamaChatService, IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package, IModelStore modelStore, IViewModelStateStore viewModelStateStore, IAgentStore agentStore, IEditorContextService editorContextService, IErrorListService errorListService, IOutputWindowContextService outputWindowContextService)
+			: base(ollamaAgentService, ollamaModelService, package, modelStore, viewModelStateStore, agentStore)
 		{
 			_ollamaChatService = ollamaChatService;
 			_chatThreadStore = (IChatThreadStore)((IServiceProvider)package).GetService(typeof(IChatThreadStore));

@@ -26,6 +26,7 @@ using System.Windows.Input;
 
 using OllamaAgent.VSIX.Models;
 
+
 public class ViewModelBase : INotifyPropertyChanged
 {
 	public event EventHandler<ServerStatus> StatusChanged;
@@ -35,28 +36,50 @@ public class ViewModelBase : INotifyPropertyChanged
 	public OllamaAgentVSIXPackage Package { get; }
 	public IModelStore ModelStore { get; }
 	public IViewModelStateStore ViewModelStateStore { get; }
+	public IAgentStore AgentStore { get; }
 	private readonly CancellationTokenSource _monitorCts = new CancellationTokenSource();
 
 	// FIX #2: Guard against concurrent SafeLoadAsync calls racing on the shared ModelStore
 	private int _isLoading = 0;
 
-	public ViewModelBase(IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package, IModelStore modelStore, IViewModelStateStore viewModelStateStore)
+	private AgentModel _selectedAgent;
+	public AgentModel SelectedAgent
+	{
+		get => _selectedAgent;
+		set
+		{
+			if (_selectedAgent != value)
+			{
+				_selectedAgent = value;
+				OnPropertyChanged();
+			}
+		}
+	}
+
+	public ViewModelBase(IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package, IModelStore modelStore, IViewModelStateStore viewModelStateStore, IAgentStore agentStore)
 	{
 		if (modelStore == null)
 			throw new ArgumentNullException(nameof(modelStore), "ModelStore cannot be null. Check your DI or constructor calls.");
 		if (viewModelStateStore == null)
 			throw new ArgumentNullException(nameof(viewModelStateStore));
+		if (agentStore == null)
+			throw new ArgumentNullException(nameof(agentStore));
 		OllamaAgentService = ollamaAgentService;
 		OllamaModelService = ollamaModelService;
 		Package = package;
 		ModelStore = modelStore;
 		ViewModelStateStore = viewModelStateStore;
+		AgentStore = agentStore;
 
 		// FIX #1: Subscribe to ModelStore.PropertyChanged so that when any ViewModel
 		// mutates SelectedChatModel or Models on the shared store, all other ViewModels
 		// bound to those properties get notified and their UI updates too.
 		ModelStore.PropertyChanged += ModelStore_PropertyChanged;
 		ViewModelStateStore.PropertyChanged += ViewModelStateStore_PropertyChanged;
+
+		// Set default agent
+		if (AgentStore.Agents.Count > 0)
+			SelectedAgent = AgentStore.Agents[0];
 
 		LoadSettings();
 		_ = StartServerMonitorAsync(_monitorCts.Token);
@@ -115,6 +138,16 @@ public class ViewModelBase : INotifyPropertyChanged
 	}
 
 	public bool AgentEnabled => ExtensionEnabled;
+
+	public ObservableCollection<AgentModel> Agents
+	{
+		get
+		{
+			if (AgentStore == null)
+				throw new InvalidOperationException("AgentStore is null. ViewModelBase must be constructed with a valid IAgentStore.");
+			return AgentStore.Agents;
+		}
+	}
 
 	public ObservableCollection<LLM> Models
 	{

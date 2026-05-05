@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 using Microsoft.Extensions.DependencyInjection;
 
+using OllamaAgent.VSIX.Models;
 using OllamaAgent.VSIX.Services;
 using OllamaAgent.VSIX.ViewModels;
 
@@ -21,6 +22,7 @@ public static class DependencyInjectionRegistration
 	public static void ConfigureStores(IServiceCollection services)
 	{
 		services.AddSingleton<IModelStore, ModelStore>();
+		services.AddSingleton<IAgentStore, AgentStore>();
 		services.AddSingleton<IViewModelStateStore, ViewModelStateStore>();
 	}
 
