@@ -168,6 +168,12 @@ namespace OllamaAgent.VSIX
 		   return Task.FromResult<object>(new Services.SymbolExtractorService());
 	   }, promote: true);
 
+	   // Register AgentActionService singleton
+	   this.AddService(typeof(Services.IAgentActionService), (container, cancellationToken, serviceType) =>
+	   {
+		   return Task.FromResult<object>(new Services.AgentActionService());
+	   }, promote: true);
+
 	   // Registers VSCT commands at runtime
 	   await OllamaAgentCommand.InitializeAsync(this);
    }

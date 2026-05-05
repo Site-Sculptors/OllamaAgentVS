@@ -26,7 +26,8 @@ public partial class ChatViewModel : ViewModelBase
 		private readonly IEditorContextService _editorContextService;
 		private readonly Services.CustomInstructionsService _customInstructionsService;
 		private readonly ISymbolExtractorService _symbolExtractorService;
-		private readonly SolutionTreeService _solutionTreeService = new SolutionTreeService();
+	private readonly SolutionTreeService _solutionTreeService = new SolutionTreeService();
+	// (moved to partial)
 		private readonly IOutputWindowContextService _outputWindowContextService;
 		private readonly IErrorListService _errorListService;
 
@@ -46,7 +47,8 @@ public partial class ChatViewModel : ViewModelBase
 			_customInstructionsService = (Services.CustomInstructionsService)((IServiceProvider)package).GetService(typeof(Services.CustomInstructionsService));
 			_symbolExtractorService = (ISymbolExtractorService)((IServiceProvider)package).GetService(typeof(ISymbolExtractorService));
 			_errorListService = errorListService;
-			_outputWindowContextService = outputWindowContextService;
+		_outputWindowContextService = outputWindowContextService;
+		_agentActionService = (IAgentActionService)((IServiceProvider)package).GetService(typeof(IAgentActionService)); // now in partial
 			Threads = new ObservableCollection<ChatThread>();
 			// Ensure threads are loaded before proceeding
 			ThreadHelper.JoinableTaskFactory.Run(async () => await LoadThreadsForCurrentSolutionAsync());
