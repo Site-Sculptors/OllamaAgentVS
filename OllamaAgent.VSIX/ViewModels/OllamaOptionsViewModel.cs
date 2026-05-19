@@ -18,10 +18,14 @@ namespace OllamaAgent.VSIX.ViewModels
 {
 	public class OllamaOptionsViewModel : ViewModelBase
 	{
-		public OllamaOptionsViewModel(IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package, IModelStore modelStore, IViewModelStateStore viewModelStateStore, IAgentStore agentStore)
-			: base(ollamaAgentService, ollamaModelService, package, modelStore, viewModelStateStore, agentStore)
+		public OllamaOptionsViewModel(IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, IServiceProvider serviceProvider, IModelStore modelStore, IViewModelStateStore viewModelStateStore, IAgentStore agentStore)
+		   : base(ollamaAgentService, ollamaModelService, serviceProvider, modelStore, viewModelStateStore, agentStore)
 		{
 		}
+
+		private AsyncRelayCommand _reloadCommand;
+		public IAsyncRelayCommand ReloadCommand =>
+			(IAsyncRelayCommand)(_reloadCommand ?? (_reloadCommand = new AsyncRelayCommand(async () => await SafeLoadAsync())));
 
 		private ICommand _selectModelsDirectoryCommand;
 		public ICommand SelectModelsDirectoryCommand =>
@@ -33,8 +37,21 @@ namespace OllamaAgent.VSIX.ViewModels
 				dialog.SelectedPath = ModelsDirectory;
 				if (dialog.ShowDialog() == DialogResult.OK)
 				{
+					// Stop Ollama server if running
+					foreach (var proc in System.Diagnostics.Process.GetProcessesByName("ollama"))
+					{
+						try { proc.Kill(); } catch { }
+					}
+
 					ModelsDirectory = dialog.SelectedPath;
 					await SafeLoadAsync();
+
+					// Start Ollama server with new directory
+					// This assumes StartServerCommand is available in the base class
+					if (StartServerCommand != null && StartServerCommand.CanExecute(null))
+					{
+						await ((IAsyncRelayCommand)StartServerCommand).ExecuteAsync(null);
+					}
 				}
 			}
 		});
@@ -51,26 +68,5 @@ namespace OllamaAgent.VSIX.ViewModels
 			get => base.SelectedChatModel;
 			set => base.SelectedChatModel = value;
 		}
-
-		//private IAsyncRelayCommand _extensionEnabledToggledCommand;
-		//public IAsyncRelayCommand ExtensionEnabledToggledCommand =>
-		//	_extensionEnabledToggledCommand ??= new AsyncRelayCommand<object>(async (parameter) =>
-		//	{
-		//		if (ExtensionEnabled)
-		//		{
-		//			if (Status == ServerStatus.Disabled)
-		//			{
-		//				Status = ServerStatus.Unknown;
-
-		//				await EnsureServerOnlineAsync();
-		//			}
-
-		//		}
-		//		else
-		//		{
-		//			Status = ServerStatus.Disabled;
-		//		}
-
-		//	});
 	}
 }

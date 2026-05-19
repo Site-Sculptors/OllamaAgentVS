@@ -29,15 +29,15 @@ using OllamaAgent.VSIX.Models;
 
 public class ViewModelBase : INotifyPropertyChanged
 {
-	public event EventHandler<ServerStatus> StatusChanged;
+   public event EventHandler<ServerStatus> StatusChanged;
 
-	public IOllamaAgentService OllamaAgentService { get; }
-	public IOllamaModelService OllamaModelService { get; }
-	public OllamaAgentVSIXPackage Package { get; }
-	public IModelStore ModelStore { get; }
-	public IViewModelStateStore ViewModelStateStore { get; }
-	public IAgentStore AgentStore { get; }
-	private readonly CancellationTokenSource _monitorCts = new CancellationTokenSource();
+   public IOllamaAgentService OllamaAgentService { get; }
+   public IOllamaModelService OllamaModelService { get; }
+   public IServiceProvider ServiceProvider { get; }
+   public IModelStore ModelStore { get; }
+   public IViewModelStateStore ViewModelStateStore { get; }
+   public IAgentStore AgentStore { get; }
+   private readonly CancellationTokenSource _monitorCts = new CancellationTokenSource();
 
 	// FIX #2: Guard against concurrent SafeLoadAsync calls racing on the shared ModelStore
 	private int _isLoading = 0;
@@ -56,7 +56,7 @@ public class ViewModelBase : INotifyPropertyChanged
 		}
 	}
 
-	public ViewModelBase(IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package, IModelStore modelStore, IViewModelStateStore viewModelStateStore, IAgentStore agentStore)
+   public ViewModelBase(IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, IServiceProvider serviceProvider, IModelStore modelStore, IViewModelStateStore viewModelStateStore, IAgentStore agentStore)
 	{
 		if (modelStore == null)
 			throw new ArgumentNullException(nameof(modelStore), "ModelStore cannot be null. Check your DI or constructor calls.");
@@ -64,12 +64,12 @@ public class ViewModelBase : INotifyPropertyChanged
 			throw new ArgumentNullException(nameof(viewModelStateStore));
 		if (agentStore == null)
 			throw new ArgumentNullException(nameof(agentStore));
-		OllamaAgentService = ollamaAgentService;
-		OllamaModelService = ollamaModelService;
-		Package = package;
-		ModelStore = modelStore;
-		ViewModelStateStore = viewModelStateStore;
-		AgentStore = agentStore;
+	  OllamaAgentService = ollamaAgentService;
+	  OllamaModelService = ollamaModelService;
+	  ServiceProvider = serviceProvider;
+	  ModelStore = modelStore;
+	  ViewModelStateStore = viewModelStateStore;
+	  AgentStore = agentStore;
 
 		// FIX #1: Subscribe to ModelStore.PropertyChanged so that when any ViewModel
 		// mutates SelectedChatModel or Models on the shared store, all other ViewModels
@@ -722,7 +722,7 @@ public class ViewModelBase : INotifyPropertyChanged
 		{
 			await Task.Yield();
 			await Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-			System.Diagnostics.Debug.WriteLine(Package == null ? "[OllamaAgent] Package is null" : "[OllamaAgent] Package is set");
+			// Removed Package reference; not needed after refactor
 			VsShellUtilities.ShowToolsOptionsPage<OllamaAgentOptionsPage>();
 			System.Diagnostics.Debug.WriteLine("[OllamaAgent] ShowOptionPage called");
 		});

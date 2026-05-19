@@ -125,7 +125,7 @@ namespace OllamaAgent.VSIX
 	   var modelStore = (Services.IModelStore)((IServiceProvider)container).GetService(typeof(Services.IModelStore));
 	   var viewModelStateStore = (Services.IViewModelStateStore)((IServiceProvider)container).GetService(typeof(Services.IViewModelStateStore));
 	   var agentStore = (Models.IAgentStore)((IServiceProvider)container).GetService(typeof(Models.IAgentStore));
-	   var vm = new ViewModels.OllamaOptionsViewModel(agentService, modelService, this, modelStore, viewModelStateStore, agentStore);
+	  var vm = new ViewModels.OllamaOptionsViewModel(agentService, modelService, this as IServiceProvider, modelStore, viewModelStateStore, agentStore);
 	   this.SharedOptionsViewModel = vm;
 	   return Task.FromResult<object>(vm);
    }, promote: true);
@@ -142,7 +142,7 @@ namespace OllamaAgent.VSIX
 	   var editorContext = (Services.IEditorContextService)((IServiceProvider)container).GetService(typeof(Services.IEditorContextService));
 	   var errorListService = (Services.IErrorListService)((IServiceProvider)container).GetService(typeof(Services.IErrorListService));
 	   var outputWindowContextService = (Services.IOutputWindowContextService)((IServiceProvider)container).GetService(typeof(Services.IOutputWindowContextService));
-	   return Task.FromResult<object>(new ViewModels.ChatViewModel(chatService, agentService, modelService, this, modelStore, viewModelStateStore, agentStore, editorContext, errorListService, outputWindowContextService));
+	  return Task.FromResult<object>(new ViewModels.ChatViewModel(chatService, agentService, modelService, this as IServiceProvider, modelStore, viewModelStateStore, agentStore, editorContext, errorListService, outputWindowContextService));
    }, promote: true);
    // Register EditorContextService singleton
    this.AddService(typeof(Services.IEditorContextService), (container, ct, serviceType) =>

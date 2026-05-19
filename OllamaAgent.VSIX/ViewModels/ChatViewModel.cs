@@ -38,26 +38,36 @@ public partial class ChatViewModel : ViewModelBase
 		private EnvDTE.DocumentEvents _documentEvents;
 		private EnvDTE.WindowEvents _windowEvents;
 
-		public ChatViewModel(IOllamaChatService ollamaChatService, IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, OllamaAgentVSIXPackage package, IModelStore modelStore, IViewModelStateStore viewModelStateStore, IAgentStore agentStore, IEditorContextService editorContextService, IErrorListService errorListService, IOutputWindowContextService outputWindowContextService)
-			: base(ollamaAgentService, ollamaModelService, package, modelStore, viewModelStateStore, agentStore)
+		public ChatViewModel(IOllamaChatService ollamaChatService, IOllamaAgentService ollamaAgentService, IOllamaModelService ollamaModelService, IServiceProvider serviceProvider, IModelStore modelStore, IViewModelStateStore viewModelStateStore, IAgentStore agentStore, IEditorContextService editorContextService, IErrorListService errorListService, IOutputWindowContextService outputWindowContextService)
+			: base(ollamaAgentService, ollamaModelService, serviceProvider, modelStore, viewModelStateStore, agentStore)
 		{
 			_ollamaChatService = ollamaChatService;
-			_chatThreadStore = (IChatThreadStore)((IServiceProvider)package).GetService(typeof(IChatThreadStore));
+			_chatThreadStore = (IChatThreadStore)serviceProvider.GetService(typeof(IChatThreadStore));
 			_editorContextService = editorContextService;
-			_customInstructionsService = (Services.CustomInstructionsService)((IServiceProvider)package).GetService(typeof(Services.CustomInstructionsService));
-			_symbolExtractorService = (ISymbolExtractorService)((IServiceProvider)package).GetService(typeof(ISymbolExtractorService));
+			_customInstructionsService = (Services.CustomInstructionsService)serviceProvider.GetService(typeof(Services.CustomInstructionsService));
+			_symbolExtractorService = (ISymbolExtractorService)serviceProvider.GetService(typeof(ISymbolExtractorService));
 			_errorListService = errorListService;
-		_outputWindowContextService = outputWindowContextService;
-		_agentActionService = (IAgentActionService)((IServiceProvider)package).GetService(typeof(IAgentActionService)); // now in partial
+			_outputWindowContextService = outputWindowContextService;
+			_agentActionService = (IAgentActionService)serviceProvider.GetService(typeof(IAgentActionService)); // now in partial
+
+			// Throw explicit exceptions for missing dependencies
+			if (_ollamaChatService == null) throw new ArgumentNullException(nameof(_ollamaChatService));
+			if (_chatThreadStore == null) throw new ArgumentNullException(nameof(_chatThreadStore));
+			if (_editorContextService == null) throw new ArgumentNullException(nameof(_editorContextService));
+			if (_customInstructionsService == null) throw new ArgumentNullException(nameof(_customInstructionsService));
+			if (_symbolExtractorService == null) throw new ArgumentNullException(nameof(_symbolExtractorService));
+			if (_errorListService == null) throw new ArgumentNullException(nameof(_errorListService));
+			if (_outputWindowContextService == null) throw new ArgumentNullException(nameof(_outputWindowContextService));
+			if (_agentActionService == null) throw new ArgumentNullException(nameof(_agentActionService));
 			Threads = new ObservableCollection<ChatThread>();
 			// Ensure threads are loaded before proceeding
-			ThreadHelper.JoinableTaskFactory.Run(async () => await LoadThreadsForCurrentSolutionAsync());
+			RunThreadLoading();
 
 			SetActiveDocumentAsAttachedFile();
 
 			// Subscribe to DTE events for active document tracking
 			ThreadHelper.ThrowIfNotOnUIThread();
-			var dte = (EnvDTE.DTE)ServiceProvider.GlobalProvider.GetService(typeof(EnvDTE.DTE));
+			var dte = (EnvDTE.DTE)Microsoft.VisualStudio.Shell.ServiceProvider.GlobalProvider.GetService(typeof(EnvDTE.DTE));
 			if (dte != null)
 			{
 				_dteEvents = dte.Events;
@@ -75,10 +85,21 @@ public partial class ChatViewModel : ViewModelBase
 			}
 		}
 
+		/// <summary>
+		/// Runs the thread-loading logic. This method is virtual for testability.
+		/// </summary>
+		protected virtual void RunThreadLoading()
+		{
+			if (ThreadHelper.JoinableTaskFactory != null)
+			{
+				ThreadHelper.JoinableTaskFactory.Run(async () => await LoadThreadsForCurrentSolutionAsync());
+			}
+		}
+
 		public void SetActiveDocumentAsAttachedFile()
 		{
 			ThreadHelper.ThrowIfNotOnUIThread();
-			var dte = (EnvDTE.DTE)ServiceProvider.GlobalProvider.GetService(typeof(EnvDTE.DTE));
+			var dte = (EnvDTE.DTE)Microsoft.VisualStudio.Shell.ServiceProvider.GlobalProvider.GetService(typeof(EnvDTE.DTE));
 			var doc = dte?.ActiveDocument;
 			if (doc != null && !string.IsNullOrEmpty(doc.FullName))
 			{
@@ -344,6 +365,9 @@ public partial class ChatViewModel : ViewModelBase
 
 		// OpenSettingsAsync now inherited from ViewModelBase
 
+		private IAsyncRelayCommand _reloadCommand;
+		public IAsyncRelayCommand ReloadCommand =>
+			_reloadCommand ??= new CommunityToolkit.Mvvm.Input.AsyncRelayCommand(async () => await SafeLoadAsync());
 
 		private IAsyncRelayCommand _sendCommand;
 		public IAsyncRelayCommand SendCommand =>
@@ -366,15 +390,22 @@ public partial class ChatViewModel : ViewModelBase
 					userInput = userInput.Substring(commandUsed.Length).TrimStart();
 				}
 
-				// --- @solution Token Detection ---
-				string solutionTree = null;
-				List<(string FileName, string Content)> relevantFiles = null;
-				if (userInput.Contains("@solution", StringComparison.OrdinalIgnoreCase))
-				{
-					solutionTree = await _solutionTreeService.GetSolutionTreeAsync();
-					// Attach relevant file contents (capped)
-					relevantFiles = await _solutionTreeService.GetRelevantSolutionFilesWithContentsAsync(userInput, 16000);
-				}
+			   // --- @solution Token Detection or ReferenceSolutionEnabled ---
+			   string solutionTree = null;
+			   List<(string FileName, string Content)> relevantFiles = null;
+
+			   // Always inject solution context if ReferenceSolutionEnabled is true
+			   bool injectSolutionContext = false;
+			   // Try to get ReferenceSolutionEnabled from settings (OllamaOptionsViewModel)
+			   var optionsVm = (OllamaAgent.VSIX.ViewModels.OllamaOptionsViewModel)ServiceProvider.GetService(typeof(OllamaAgent.VSIX.ViewModels.OllamaOptionsViewModel));
+			   if (optionsVm != null && optionsVm.ReferenceSolutionEnabled)
+				   injectSolutionContext = true;
+			   if (userInput.Contains("@solution", StringComparison.OrdinalIgnoreCase) || injectSolutionContext)
+			   {
+				   solutionTree = await _solutionTreeService.GetSolutionTreeAsync();
+				   // Attach relevant file contents (capped)
+				   relevantFiles = await _solutionTreeService.GetRelevantSolutionFilesWithContentsAsync(userInput, 16000);
+			   }
 
 				// --- #output Token Detection ---
 				string outputPaneName = null;
