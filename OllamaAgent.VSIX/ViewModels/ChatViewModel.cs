@@ -440,8 +440,8 @@ public partial class ChatViewModel : ViewModelBase
 					contextBlock += $"// Active file: {fileName} [{language}]\n{fileContent}\n";
 				}
 
-				// --- Error List Context Injection for /fix ---
-				if (isFixCommand && !hasSelection && !string.IsNullOrEmpty(fileName))
+				// --- Error List Context Injection: always include errors for active file ---
+				if (!hasSelection && !string.IsNullOrEmpty(fileName))
 				{
 					var errors = await _errorListService.GetErrorsForFileAsync(fileName);
 					if (errors != null && errors.Count > 0)
@@ -450,6 +450,19 @@ public partial class ChatViewModel : ViewModelBase
 						foreach (var err in errors)
 						{
 							contextBlock += $"Line {err.Line}: {err.Message} [{err.Severity}]\n";
+							// Optionally, include code around the error line (e.g., +/- 2 lines)
+							if (!string.IsNullOrEmpty(fileContent))
+							{
+								var lines = fileContent.Split('\n');
+								int idx = err.Line - 1;
+								int start = Math.Max(0, idx - 2);
+								int end = Math.Min(lines.Length - 1, idx + 2);
+								contextBlock += $"Code around line {err.Line}:\n";
+								for (int i = start; i <= end; i++)
+								{
+									contextBlock += $"{i + 1}: {lines[i]}\n";
+								}
+							}
 						}
 					}
 				}
@@ -517,63 +530,64 @@ public partial class ChatViewModel : ViewModelBase
 			   var conversation = string.Join("\n", ActiveThread.Messages.Select(m => $"{m.Role}: {m.Content}"));
 				prompt += $"Given the following conversation, reply as the assistant. Also, suggest a concise thread title (max 5 words) that summarizes the conversation so far. Format your response as:\nMessage: <your reply>\nTitle: <suggested title>\n\nConversation:\n{conversation}\nUser: {userInput}";
 
-				// --- Streaming response ---
+
+			   // --- Streaming response ---
 			   IsAwaitingAIResponse = true;
-				_stopStreamingCts = new System.Threading.CancellationTokenSource();
-				var userMsg = ActiveThread.Messages.LastOrDefault(m => m.Role == ChatRole.User);
+			   _stopStreamingCts = new System.Threading.CancellationTokenSource();
+			   var userMsg = ActiveThread.Messages.LastOrDefault(m => m.Role == ChatRole.User);
 			   var aiMsg = new AIChatMessage(string.Empty);
 			   ActiveThread.Messages.Add(aiMsg);
-				OnPropertyChanged(nameof(ChatHistory));
+			   OnPropertyChanged(nameof(ChatHistory));
 
-				// Build chat history for Ollama
+			   // Build chat history for Ollama
 			   var chatMessages = ActiveThread.Messages
 				   .Select(m => (role: m.Role == ChatRole.User ? "user" : "assistant", content: m.Content))
 				   .ToList();
 
-				// Remove the last AI message (the one we're about to stream)
-				if (chatMessages.Count > 0 && chatMessages.Last().role == "assistant")
-					chatMessages.RemoveAt(chatMessages.Count - 1);
+			   // Remove the last AI message (the one we're about to stream)
+			   if (chatMessages.Count > 0 && chatMessages.Last().role == "assistant")
+				   chatMessages.RemoveAt(chatMessages.Count - 1);
 
+			   // System prompt as a system message if present
+			   if (!string.IsNullOrEmpty(prompt))
+				   chatMessages.Insert(0, ("system", prompt));
 
-				// System prompt as a system message if present
-				if (!string.IsNullOrEmpty(prompt))
-					chatMessages.Insert(0, ("system", prompt));
-
-				// Streaming callback
+			   // Streaming callback
 			   var sb = new System.Text.StringBuilder();
 			   System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Streaming started at {DateTime.Now:HH:mm:ss.fff}");
-				  await Task.Run(async () =>
+			   await Task.Run(async () =>
 			   {
-				  await _ollamaChatService.StreamChatAsync(
-				   OllamaEndpoint,
-				   SelectedChatModel.Name,
-				   chatMessages,
-				   fragment =>
-				   {
-					   System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Fragment received at {DateTime.Now:HH:mm:ss.fff}: '{fragment?.Substring(0, Math.Min(fragment.Length, 40))}'");
-					   sb.Append(fragment);
-					   var content = sb.ToString();
-					   var dispatcher = System.Windows.Application.Current?.Dispatcher;
-					   if (dispatcher != null && !dispatcher.CheckAccess())
+				   await _ollamaChatService.StreamChatAsync(
+					   OllamaEndpoint,
+					   SelectedChatModel.Name,
+					   chatMessages,
+					   fragment =>
 					   {
-						   dispatcher.Invoke(() => {
+						   System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Fragment received at {DateTime.Now:HH:mm:ss.fff}: '{fragment?.Substring(0, Math.Min(fragment.Length, 40))}'");
+						   sb.Append(fragment);
+						   var content = sb.ToString();
+						   var dispatcher = System.Windows.Application.Current?.Dispatcher;
+						   if (dispatcher != null && !dispatcher.CheckAccess())
+						   {
+							   dispatcher.Invoke(() => {
+								   aiMsg.Content = content;
+								   OnPropertyChanged(nameof(ChatHistory));
+							   });
+						   }
+						   else
+						   {
 							   aiMsg.Content = content;
 							   OnPropertyChanged(nameof(ChatHistory));
-						   });
-					   }
-					   else
-					   {
-						   aiMsg.Content = content;
-						   OnPropertyChanged(nameof(ChatHistory));
-					   }
-					   // No need to update IsAwaitingAIResponse here; only after full response
-				   },
-				   _stopStreamingCts.Token
-			   );
+						   }
+						   // No need to update IsAwaitingAIResponse here; only after full response
+					   },
+					   _stopStreamingCts.Token
+				   );
 			   });
+
 			   // After streaming, extract only the message part if present
-				  var fullResponse = sb.ToString();
-				  string messageText;
+			   var fullResponse = sb.ToString();
+			   string messageText;
 			   string titleText = null;
 			   var hasMessage = fullResponse.Contains("Message:", StringComparison.OrdinalIgnoreCase);
 			   var hasTitle = fullResponse.Contains("Title:", StringComparison.OrdinalIgnoreCase);
@@ -616,21 +630,37 @@ public partial class ChatViewModel : ViewModelBase
 			   {
 				   messageText = fullResponse.Trim();
 			   }
-				  var dispatcher = System.Windows.Application.Current?.Dispatcher;
+
+			   // --- AGENT CODE FIX APPLICATION ---
+			   if (string.Equals(commandUsed, "/fix", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(fileName) && !string.IsNullOrEmpty(fileContent))
+			   {
+				   // Try to apply the code fix to the file
+				   var applied = await TryApplyAgentCodeChangeAsync(fileName, messageText, fileContent);
+				   if (applied)
+				   {
+					   messageText += "\n\n✅ Code fix applied to file.";
+				   }
+				   else
+				   {
+					   messageText += "\n\n❌ Failed to apply code fix to file.";
+				   }
+			   }
+
+			   var dispatcher = System.Windows.Application.Current?.Dispatcher;
 			   if (dispatcher != null && !dispatcher.CheckAccess())
 			   {
 				   dispatcher.Invoke(() => {
 					   aiMsg.Content = messageText;
 					   // Update thread title if present
-					  if (!string.IsNullOrWhiteSpace(titleText))
-				   {
-					   // Always update if auto-named, or if the name is 'New Thread', or if the title is different
-					   if (ActiveThread.IsAutoNamed || string.Equals(ActiveThread.Name, "New Thread", StringComparison.OrdinalIgnoreCase) || !string.Equals(ActiveThread.Name, titleText, StringComparison.Ordinal))
+					   if (!string.IsNullOrWhiteSpace(titleText))
 					   {
-						   ActiveThread.Name = titleText;
-						   ActiveThread.IsAutoNamed = false;
+						   // Always update if auto-named, or if the name is 'New Thread', or if the title is different
+						   if (ActiveThread.IsAutoNamed || string.Equals(ActiveThread.Name, "New Thread", StringComparison.OrdinalIgnoreCase) || !string.Equals(ActiveThread.Name, titleText, StringComparison.Ordinal))
+						   {
+							   ActiveThread.Name = titleText;
+							   ActiveThread.IsAutoNamed = false;
+						   }
 					   }
-				   }
 					   OnPropertyChanged(nameof(ChatHistory));
 				   });
 			   }
@@ -647,7 +677,7 @@ public partial class ChatViewModel : ViewModelBase
 			   System.Diagnostics.Debug.WriteLine($"[OllamaAgent] Streaming ended at {DateTime.Now:HH:mm:ss.fff}");
 			   IsAwaitingAIResponse = false;
 			   await SaveThreadAsync(ActiveThread);
-			});
+		   });
 
 
 		private bool _isAwaitingAIResponse = false;

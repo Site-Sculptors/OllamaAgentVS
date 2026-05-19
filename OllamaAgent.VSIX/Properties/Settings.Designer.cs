@@ -106,5 +106,17 @@ namespace OllamaAgent.VSIX.Properties {
 				this["AutoAttachActiveDocument"] = value;
 			}
 		}
+
+		[global::System.Configuration.UserScopedSettingAttribute()]
+		[global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+		[global::System.Configuration.DefaultSettingValueAttribute("False")]
+		public bool ReferenceSolutionEnabled {
+			get {
+				return ((bool)(this["ReferenceSolutionEnabled"]));
+			}
+			set {
+				this["ReferenceSolutionEnabled"] = value;
+			}
+		}
 	}
 }

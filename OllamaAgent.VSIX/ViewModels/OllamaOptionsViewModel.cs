@@ -13,6 +13,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Input;
+using System.Diagnostics;
 
 namespace OllamaAgent.VSIX.ViewModels
 {
@@ -22,6 +23,9 @@ namespace OllamaAgent.VSIX.ViewModels
 		   : base(ollamaAgentService, ollamaModelService, serviceProvider, modelStore, viewModelStateStore, agentStore)
 		{
 		}
+
+		// Expose the state store for direct binding in XAML
+		public IViewModelStateStore State => ViewModelStateStore;
 
 		private AsyncRelayCommand _reloadCommand;
 		public IAsyncRelayCommand ReloadCommand =>
@@ -68,5 +72,7 @@ namespace OllamaAgent.VSIX.ViewModels
 			get => base.SelectedChatModel;
 			set => base.SelectedChatModel = value;
 		}
+
+		// No need to override or hide OnPropertyChanged; use base implementation and property setter logic only.
 	}
 }

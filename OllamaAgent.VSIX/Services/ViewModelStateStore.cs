@@ -13,7 +13,7 @@ namespace OllamaAgent.VSIX.Services
 		private string _chatsDirectory;
 		private bool _extensionEnabled = true;
 		private bool _autoAttachActiveDocument = true;
-		private bool _referenceSolutionEnabled;
+		private bool _referenceSolutionEnabled = OllamaAgent.VSIX.Properties.Settings.Default.ReferenceSolutionEnabled;
 
 		public ServerStatus Status
 		{
@@ -114,6 +114,8 @@ namespace OllamaAgent.VSIX.Services
 				if (_referenceSolutionEnabled != value)
 				{
 					_referenceSolutionEnabled = value;
+					OllamaAgent.VSIX.Properties.Settings.Default.ReferenceSolutionEnabled = value;
+					OllamaAgent.VSIX.Properties.Settings.Default.Save();
 					OnPropertyChanged(nameof(ReferenceSolutionEnabled));
 				}
 			}
