@@ -10,37 +10,37 @@ This plan outlines the steps to add semantic codebase search and deep context aw
 ## Implementation Steps
 
 ### 1. Workspace Indexing
-- [ ] Enumerate all solution/project files
-- [ ] Parse files for symbols (classes, methods, properties, etc.)
-- [ ] Build an in-memory index for fast lookup
-- [ ] Builds after this step
+- [x] Enumerate all solution/project files
+ [x] Parse files for symbols (classes, methods, properties, etc.)
+ [x] Build an in-memory index for fast lookup
+ [x] Builds after this step
 
 ### 2. Symbol & Reference Search
-- [ ] Implement symbol search (by name/type)
-- [ ] Implement reference search (find usages)
-- [ ] Expose APIs for symbol and reference queries
-- [ ] Builds after this step
+ [x] Implement symbol search (by name/type)
+ [x] Implement reference search (find usages)
+ [x] Expose APIs for symbol and reference queries
+ [x] Builds after this step
 
 ### 3. Semantic & Full-Text Search
-- [ ] Implement full-text search across all files
-- [ ] Add basic semantic search (e.g., using Roslyn for C#)
-- [ ] Expose APIs for semantic queries
-- [ ] Builds after this step
+ [x] Implement full-text search across all files
+ [x] Add basic semantic search (e.g., using Roslyn for C#)
+ [x] Expose APIs for semantic queries
+ [x] Builds after this step
 
 ### 4. Agent Context Integration
-- [ ] Allow agent to retrieve code snippets and summaries from any file
-- [ ] Provide context window for agent prompts (surrounding code, related symbols)
-- [ ] Summarize large files or results for LLM input
-- [ ] Builds after this step
+ [x] Allow agent to retrieve code snippets and summaries from any file
+ [x] Provide context window for agent prompts (surrounding code, related symbols)
+ [x] Summarize large files or results for LLM input
+ [x] Builds after this step
 
 ### 5. UI Integration
-- [ ] Add codebase Q&A option to chat window
-- [ ] Display search results and context in chat or a dedicated panel
-- [ ] Allow user to select codebase context for agent queries
-- [ ] Builds after this step
+ [x] Add codebase Q&A option to chat window
+ [x] Display search results and context in chat or a dedicated panel
+ [x] Allow user to select codebase context for agent queries
+ [x] Builds after this step
 
 ### 6. Testing & Validation
-- [ ] Unit tests for indexing and search APIs
+ [x] Unit tests for indexing and search APIs
 - [ ] Integration tests for agent Q&A
 - [ ] User testing for UI/UX
 - [ ] Builds after this step

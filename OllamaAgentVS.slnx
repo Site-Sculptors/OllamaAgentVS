@@ -1,6 +1,10 @@
 <Solution>
-  <Project Path="../../AppsExamples/vs-extension-llmcopilot-main/LLMCopilot/vs2022/LLMCopilot.csproj" Id="cec2664c-1b3e-4aa1-9369-6eae36e1c9c2" />
-  <Project Path="OllamaAgent.VSIX/OllamaAgent.VSIX.csproj">
-    <Deploy />
-  </Project>
+  <Folder Name="/Extension/">
+    <Project Path="OllamaAgent.VSIX/OllamaAgent.VSIX.csproj">
+      <Deploy />
+    </Project>
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="OllamaAgentVSTests/OllamaAgentVSTests.csproj" Id="fab999a9-87ab-4522-862e-5f4780999dc6" />
+  </Folder>
 </Solution>
